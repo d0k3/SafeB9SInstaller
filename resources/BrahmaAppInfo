@@ -1,0 +1,6 @@
+APP_TITLE = SafeSigHaxInstaller
+APP_DESCRIPTION = Safe, simple, user-friendly installer for sighaxed FIRMs
+APP_AUTHOR = d0k3
+
+PAYLOAD_MEM = 1
+VOODOO = 0x3F
