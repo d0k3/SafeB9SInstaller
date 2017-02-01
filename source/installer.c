@@ -54,13 +54,13 @@ u32 ShowInstallerStatus(void) {
     DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + 50, COLOR_STD_FONT, COLOR_STD_BG, "Backup Status :");
     DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + 60, COLOR_STD_FONT, COLOR_STD_BG, "Install Status:");
     
-    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 +  0, COLOR_STATUS(statusA9lh)   , COLOR_STD_BG, msgA9lh   );
-    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 10, COLOR_STATUS(statusSdCard) , COLOR_STD_BG, msgSdCard );
-    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 20, COLOR_STATUS(statusFirm)   , COLOR_STD_BG, msgFirm   );
-    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 30, COLOR_STATUS(statusSector) , COLOR_STD_BG, msgSector );
-    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 40, COLOR_STATUS(statusCrypto) , COLOR_STD_BG, msgCrypto );
-    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 50, COLOR_STATUS(statusBackup) , COLOR_STD_BG, msgBackup );
-    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 60, COLOR_STATUS(statusInstall), COLOR_STD_BG, msgInstall);
+    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 +  0, COLOR_STATUS(statusA9lh)   , COLOR_STD_BG, "%-22.22s", msgA9lh   );
+    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 10, COLOR_STATUS(statusSdCard) , COLOR_STD_BG, "%-22.22s", msgSdCard );
+    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 20, COLOR_STATUS(statusFirm)   , COLOR_STD_BG, "%-22.22s", msgFirm   );
+    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 30, COLOR_STATUS(statusSector) , COLOR_STD_BG, "%-22.22s", msgSector );
+    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 40, COLOR_STATUS(statusCrypto) , COLOR_STD_BG, "%-22.22s", msgCrypto );
+    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 50, COLOR_STATUS(statusBackup) , COLOR_STD_BG, "%-22.22s", msgBackup );
+    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 60, COLOR_STATUS(statusInstall), COLOR_STD_BG, "%-22.22s", msgInstall);
     
     return 0;
 }
@@ -73,7 +73,6 @@ u32 SafeSigHaxInstaller(void) {
     
     
     // step #0 - a9lh check
-    InitNandCrypto(); // for sector0x96 crypto and NAND drives
     snprintf(msgA9lh, 64, CheckA9lh() ? "installed" : "not installed");
     statusA9lh = STATUS_GREEN;
     ShowInstallerStatus();
@@ -91,7 +90,8 @@ u32 SafeSigHaxInstaller(void) {
         statusSdCard = STATUS_RED;
         return 1;
     }
-    snprintf(msgSdCard, 64, "%lluMB / %lluMB free", sdFree / (1024 * 1024), sdTotal / (1024 * 1024));
+    InitNandCrypto(); // for sector0x96 crypto and NAND drives
+    snprintf(msgSdCard, 64, "%lluMB/%lluMB free", sdFree / (1024 * 1024), sdTotal / (1024 * 1024));
     statusSdCard = (sdFree < MIN_SD_FREE) ? STATUS_RED : STATUS_GREEN;
     ShowInstallerStatus();
     if (sdFree < MIN_SD_FREE) return 1;
@@ -177,6 +177,8 @@ u32 SafeSigHaxInstaller(void) {
     if (!ShowUnlockSequence(1, "All input files verified.\nTo install FIRM, enter the sequence\nbelow or press B to cancel.")) {
         snprintf(msgBackup, 64, "cancelled by user");
         snprintf(msgInstall, 64, "cancelled by user");
+        statusBackup = STATUS_YELLOW;
+        statusInstall = STATUS_YELLOW;
         return 1;
     }
     
@@ -215,7 +217,7 @@ u32 SafeSigHaxInstaller(void) {
         u8 sector_backup0[0x200];
         u8 sector_backup1[0x200];
         f_unlink(NAME_SECTORBACKUP);
-        if ((ReadNandSectors(sector_backup0, 96, 1, 0xFF) != 0) ||
+        if ((ReadNandSectors(sector_backup0, 0x96, 1, 0xFF) != 0) ||
             (f_qwrite(NAME_SECTORBACKUP, sector_backup0, 0, 0x200, &bt) != FR_OK) || (bt != 0x200) ||
             (f_qread(NAME_SECTORBACKUP, sector_backup1, 0, 0x200, &bt) != FR_OK) || (bt != 0x200) ||
             (memcmp(sector_backup0, sector_backup1, 0x200) != 0)) {
@@ -230,6 +232,7 @@ u32 SafeSigHaxInstaller(void) {
     // backups done
     
     // step #6 - install sighaxed FIRM
+    ShowPrompt(false, "Install not finished - this is only a preview");
     
     
     return 0;

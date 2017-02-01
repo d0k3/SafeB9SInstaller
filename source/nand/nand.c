@@ -11,8 +11,8 @@ static const u8 slot0x05KeyY_sha256[0x20] = { // hash for slot0x05KeyY (16 byte)
 };
 
 static const u8 slot0x11Key95_sha256[0x20] = { // slot0x11Key95 hash (first 16 byte of sector0x96)
-    0xBF, 0x01, 0x4C, 0x85, 0x9B, 0xA1, 0x07, 0xFA, 0x3B, 0xAC, 0x25, 0x20, 0x1A, 0x3F, 0x3A, 0xF4, 
-    0x4E, 0x97, 0xE9, 0x5C, 0x06, 0x46, 0xF8, 0xE7, 0xC1, 0xC2, 0xC3, 0x29, 0x88, 0xBF, 0xF6, 0x50
+    0xBA, 0xC1, 0x40, 0x9C, 0x6E, 0xE4, 0x1F, 0x04, 0xAA, 0xC4, 0xE2, 0x09, 0x5C, 0xE9, 0x4F, 0x78, 
+    0x6C, 0x78, 0x5F, 0xAC, 0xEC, 0x7E, 0xC0, 0x11, 0x26, 0x9D, 0x4E, 0x47, 0xB3, 0x64, 0xC4, 0xA5
 };
     
 static const u8 nand_magic_n3ds[0x60] = { // NCSD NAND header N3DS magic
@@ -95,7 +95,8 @@ bool InitNandCrypto(void)
     u32 NandCid[4];
     u8 shasum[32];
     
-    sdmmc_get_cid( 1, NandCid);
+    sdmmc_sdcard_init();
+    sdmmc_get_cid(1, NandCid);
     sha_quick(shasum, (u8*) NandCid, 16, SHA256_MODE);
     memcpy(CtrNandCtr, shasum, 16);
     sha_quick(shasum, (u8*) NandCid, 16, SHA1_MODE);
@@ -131,11 +132,12 @@ bool InitNandCrypto(void)
     // part #3: CTRNAND N3DS KEY
     // thanks AuroraWright and Gelex for advice on this
     // see: https://github.com/AuroraWright/Luma3DS/blob/master/source/crypto.c#L347
-    
-    // keyY 0x05 is encrypted @0x0EB014 in the FIRM90
-    // keyY 0x05 is encrypted @0x0EB24C in the FIRM81
-    if ((LoadKeyYFromP9(slot0x05KeyY, slot0x05KeyY_sha256, 0x0EB014, 0x05) != 0) &&
-        (LoadKeyYFromP9(slot0x05KeyY, slot0x05KeyY_sha256, 0x0EB24C, 0x05) != 0)) {};
+    if (CheckA9lh()) { // only for a9lh
+        // keyY 0x05 is encrypted @0x0EB014 in the FIRM90
+        // keyY 0x05 is encrypted @0x0EB24C in the FIRM81
+        if ((LoadKeyYFromP9(slot0x05KeyY, slot0x05KeyY_sha256, 0x0EB014, 0x05) != 0) &&
+            (LoadKeyYFromP9(slot0x05KeyY, slot0x05KeyY_sha256, 0x0EB24C, 0x05) != 0)) {};
+    }
     
     return true;
 }
@@ -175,12 +177,11 @@ bool CheckFirmCrypto(void)
     u8 buffer[0x200];
     for (u32 i = 0; i < sizeof(sectors) / sizeof(u32); i++) {
         ReadNandSectors(buffer, sectors[i], 1, 0x06);
-        ShowPrompt(false, "%016llX\n%016llX", getbe64(magic), getbe64(buffer));
         if (memcmp(buffer, magic, 8) != 0) return false;
     }
     
     // success if we arrive here
-    return false;
+    return true;
 }
 
 bool CheckA9lh(void)
