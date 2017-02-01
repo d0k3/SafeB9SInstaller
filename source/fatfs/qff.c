@@ -26,8 +26,6 @@ FRESULT f_qread (const TCHAR* path, void* buff, FSIZE_t ofs, UINT btr, UINT* br)
     res = f_read(&fp, buff, btr, br);
     f_close(&fp);
     
-    if (*br != btr) res = FR_DENIED; // hacky
-    
     return res;
 }
 
@@ -48,8 +46,6 @@ FRESULT f_qwrite (const TCHAR* path, const void* buff, FSIZE_t ofs, UINT btw, UI
     
     res = f_write(&fp, buff, btw, bw);
     f_close(&fp);
-    
-    if (*bw != btw) res = FR_DENIED; // hacky
     
     return res;
 }

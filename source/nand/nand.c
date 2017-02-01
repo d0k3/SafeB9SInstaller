@@ -1,16 +1,18 @@
 #include "nand.h"
-#include "platform.h"
-#include "qff.h"
 #include "aes.h"
 #include "sha.h"
 #include "sdmmc.h"
-
-#define NAND_MIN_SECTORS ((GetUnitPlatform() == PLATFORM_N3DS) ? NAND_MIN_SECTORS_N3DS : NAND_MIN_SECTORS_O3DS)
+#include "qff.h"
 
 static u8 slot0x05KeyY[0x10] = { 0x00 }; // need to load this from FIRM0 / external file
 static const u8 slot0x05KeyY_sha256[0x20] = { // hash for slot0x05KeyY (16 byte)
     0x98, 0x24, 0x27, 0x14, 0x22, 0xB0, 0x6B, 0xF2, 0x10, 0x96, 0x9C, 0x36, 0x42, 0x53, 0x7C, 0x86,
     0x62, 0x22, 0x5C, 0xFD, 0x6F, 0xAE, 0x9B, 0x0A, 0x85, 0xA5, 0xCE, 0x21, 0xAA, 0xB6, 0xC8, 0x4D
+};
+
+static const u8 slot0x11Key95_sha256[0x20] = { // slot0x11Key95 hash (first 16 byte of sector0x96)
+    0xBF, 0x01, 0x4C, 0x85, 0x9B, 0xA1, 0x07, 0xFA, 0x3B, 0xAC, 0x25, 0x20, 0x1A, 0x3F, 0x3A, 0xF4, 
+    0x4E, 0x97, 0xE9, 0x5C, 0x06, 0x46, 0xF8, 0xE7, 0xC1, 0xC2, 0xC3, 0x29, 0x88, 0xBF, 0xF6, 0x50
 };
     
 static const u8 nand_magic_n3ds[0x60] = { // NCSD NAND header N3DS magic
@@ -160,8 +162,25 @@ bool CheckSlot0x05Crypto(void)
 
 bool CheckSector0x96Crypto(void)
 {
-    const u8 zeroes[32] = { 0 };
-    return !(memcmp(OtpSha256, zeroes, 32) == 0);
+    u8 buffer[0x200];
+    ReadNandSectors(buffer, 0x96, 1, 0x11);
+    return (sha_cmp(slot0x11Key95_sha256, buffer, 16, SHA256_MODE) == 0);
+}
+
+bool CheckFirmCrypto(void)
+{
+    // check the FIRM magic
+    const u8 magic[8] = {'F', 'I', 'R', 'M', '\0', '\0', '\0', '\0'}; 
+    const u32 sectors[] = { SECTOR_FIRM0, SECTOR_FIRM1 };
+    u8 buffer[0x200];
+    for (u32 i = 0; i < sizeof(sectors) / sizeof(u32); i++) {
+        ReadNandSectors(buffer, sectors[i], 1, 0x06);
+        ShowPrompt(false, "%016llX\n%016llX", getbe64(magic), getbe64(buffer));
+        if (memcmp(buffer, magic, 8) != 0) return false;
+    }
+    
+    // success if we arrive here
+    return false;
 }
 
 bool CheckA9lh(void)
@@ -296,12 +315,12 @@ int WriteNandSectors(const void* buffer, u32 sector, u32 count, u32 keyslot)
 
 u32 CheckNandHeader(void* header)
 {
-    // TWL MBR check
-    u8 header_dec[0x200];
+    // TWL MBR check - ignored
+    /*u8 header_dec[0x200];
     memcpy(header_dec, header, 0x200);
     CryptNand(header_dec, 0, 1, 0x03);
     if (memcmp(header_dec + 0x1BE, twl_mbr, sizeof(twl_mbr)) != 0)
-        return 0; // header does not belong to console
+        return 0; // header does not belong to console */
     
     // header type check
     u8* header_enc = header;

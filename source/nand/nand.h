@@ -1,6 +1,9 @@
 #pragma once
 
 #include "common.h"
+#include "platform.h"
+
+#define NAND_MIN_SECTORS ((GetUnitPlatform() == PLATFORM_N3DS) ? NAND_MIN_SECTORS_N3DS : NAND_MIN_SECTORS_O3DS)
 
 #define NAND_SYSNAND    (1<<0)
 #define NAND_ZERONAND   (1<<3)
@@ -35,6 +38,7 @@
 bool InitNandCrypto(void);
 bool CheckSlot0x05Crypto(void);
 bool CheckSector0x96Crypto(void);
+bool CheckFirmCrypto(void);
 bool CheckA9lh(void);
 
 void CryptNand(void* buffer, u32 sector, u32 count, u32 keyslot);

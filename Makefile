@@ -18,9 +18,9 @@ include $(DEVKITARM)/ds_rules
 #---------------------------------------------------------------------------------
 export TARGET	:=	SafeSigHaxInstaller
 BUILD		:=	build
-SOURCES		:=	source source/common source/fs source/crypto source/fatfs source/nand source/abstraction
+SOURCES		:=	source source/common source/fs source/crypto source/fatfs source/nand source/safety source/abstraction
 DATA		:=	data
-INCLUDES	:=	source source/common source/font source/fs source/crypto source/fatfs source/nand
+INCLUDES	:=	source source/common source/font source/fs source/crypto source/fatfs source/nand source/safety
 
 #---------------------------------------------------------------------------------
 # options for code generation
