@@ -1,15 +1,19 @@
 #include "installer.h"
 #include "validator.h"
 #include "safewrite.h"
+#include "chainload.h"
 #include "nand.h"
 #include "ui.h"
 #include "qff.h"
+#include "hid.h"
 
 #define COLOR_STATUS(s) ((s == STATUS_GREEN) ? COLOR_BRIGHTGREEN : (s == STATUS_YELLOW) ? COLOR_BRIGHTYELLOW : (s == STATUS_RED) ? COLOR_RED : COLOR_DARKGREY)
 
 #define MIN_SD_FREE (16 * 1024 * 1024) // 16MB
 #define FIRM_NAND_OFFSET    0x0B130000
 #define FIRM_NAND_SIZE      0x800000
+#define FIRM0_NAND_OFFSET   FIRM_NAND_OFFSET
+#define FIRM1_NAND_OFFSET   (FIRM_NAND_OFFSET + (FIRM_NAND_SIZE/2))
 
 #define NAME_SIGHAXFIRM     (INPUT_PATH "/sighaxfirm.bin")
 #define NAME_SIGHAXFIRMSHA  (INPUT_PATH "/sighaxfirm.bin.sha")
@@ -40,27 +44,28 @@ static char msgInstall[64]     = "not started";
 u32 ShowInstallerStatus(void) {
     const u32 pos_xb = 10;
     const u32 pos_x0 = pos_xb;
-    const u32 pos_x1 = pos_x0 + (16*FONT_WIDTH_EXT);
+    const u32 pos_x1 = pos_x0 + (17*FONT_WIDTH_EXT);
     const u32 pos_yb = 10;
     const u32 pos_y0 = pos_yb + 20;
+    const u32 stp = 12;
     
     DrawStringF(BOT_SCREEN, pos_xb, pos_yb, COLOR_STD_FONT, COLOR_STD_BG, "SafeSigHaxInstaller v" VERSION);
     
-    DrawStringF(BOT_SCREEN, pos_x0, pos_y0 +  0, COLOR_STD_FONT, COLOR_STD_BG, "ARM9LoaderHax :");
-    DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + 10, COLOR_STD_FONT, COLOR_STD_BG, "MicroSD Card  :");
-    DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + 20, COLOR_STD_FONT, COLOR_STD_BG, "Sighaxed FIRM :");
-    DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + 30, COLOR_STD_FONT, COLOR_STD_BG, "Secret Sector :");
-    DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + 40, COLOR_STD_FONT, COLOR_STD_BG, "Crypto Status :");
-    DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + 50, COLOR_STD_FONT, COLOR_STD_BG, "Backup Status :");
-    DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + 60, COLOR_STD_FONT, COLOR_STD_BG, "Install Status:");
+    DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + (0*stp), COLOR_STD_FONT, COLOR_STD_BG, "ARM9LoaderHax  -");
+    DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + (1*stp), COLOR_STD_FONT, COLOR_STD_BG, "MicroSD Card   -");
+    DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + (2*stp), COLOR_STD_FONT, COLOR_STD_BG, "Sighaxed FIRM  -");
+    DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + (3*stp), COLOR_STD_FONT, COLOR_STD_BG, "Secret Sector  -");
+    DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + (4*stp), COLOR_STD_FONT, COLOR_STD_BG, "Crypto Status  -");
+    DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + (5*stp), COLOR_STD_FONT, COLOR_STD_BG, "Backup Status  -");
+    DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + (6*stp), COLOR_STD_FONT, COLOR_STD_BG, "Install Status -");
     
-    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 +  0, COLOR_STATUS(statusA9lh)   , COLOR_STD_BG, "%-22.22s", msgA9lh   );
-    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 10, COLOR_STATUS(statusSdCard) , COLOR_STD_BG, "%-22.22s", msgSdCard );
-    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 20, COLOR_STATUS(statusFirm)   , COLOR_STD_BG, "%-22.22s", msgFirm   );
-    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 30, COLOR_STATUS(statusSector) , COLOR_STD_BG, "%-22.22s", msgSector );
-    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 40, COLOR_STATUS(statusCrypto) , COLOR_STD_BG, "%-22.22s", msgCrypto );
-    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 50, COLOR_STATUS(statusBackup) , COLOR_STD_BG, "%-22.22s", msgBackup );
-    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + 60, COLOR_STATUS(statusInstall), COLOR_STD_BG, "%-22.22s", msgInstall);
+    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + (0*stp), COLOR_STATUS(statusA9lh)   , COLOR_STD_BG, "%-21.21s", msgA9lh   );
+    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + (1*stp), COLOR_STATUS(statusSdCard) , COLOR_STD_BG, "%-21.21s", msgSdCard );
+    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + (2*stp), COLOR_STATUS(statusFirm)   , COLOR_STD_BG, "%-21.21s", msgFirm   );
+    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + (3*stp), COLOR_STATUS(statusSector) , COLOR_STD_BG, "%-21.21s", msgSector );
+    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + (4*stp), COLOR_STATUS(statusCrypto) , COLOR_STD_BG, "%-21.21s", msgCrypto );
+    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + (5*stp), COLOR_STATUS(statusBackup) , COLOR_STD_BG, "%-21.21s", msgBackup );
+    DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + (6*stp), COLOR_STATUS(statusInstall), COLOR_STD_BG, "%-21.21s", msgInstall);
     
     return 0;
 }
@@ -132,7 +137,7 @@ u32 SafeSigHaxInstaller(void) {
     
     
     // step #3 - check secret_sector.bin file
-    u8 secret_sector[0x20];
+    u8 secret_sector[0x200];
     if (CheckA9lh()) {
         snprintf(msgSector, 64, "checking...");
         statusSector = STATUS_YELLOW;
@@ -232,8 +237,68 @@ u32 SafeSigHaxInstaller(void) {
     // backups done
     
     // step #6 - install sighaxed FIRM
-    ShowPrompt(false, "Install not finished - this is only a preview");
+    // ShowPrompt(false, "Install not finished - this is only a preview");
+    snprintf(msgInstall, 64, "FIRM install...");
+    statusInstall = STATUS_YELLOW;
+    ShowInstallerStatus();
+    ShowProgress(0, 0, "FIRM install");
+    do {
+        ret = SafeWriteNand(FIRM_BUFFER, FIRM0_NAND_OFFSET, firm_size, 0x06);
+        if (ret != 0) break;
+        ShowProgress(1, 2, "FIRM install (1/2)");
+        snprintf(msgInstall, 64, "FIRM install (1/2)");
+        ShowInstallerStatus();
+        ret = SafeWriteNand(FIRM_BUFFER, FIRM1_NAND_OFFSET, firm_size, 0x06);
+        if (ret != 0) break;
+        ShowProgress(1, 2, "FIRM install (2/2)");
+        snprintf(msgInstall, 64, "FIRM install (2/2)");
+        ShowInstallerStatus();
+        if (CheckA9lh()) {
+            snprintf(msgInstall, 64, "0x96 revert...");
+            ShowInstallerStatus();
+            ret = SafeWriteNand(secret_sector, 0x96, 0x200, 0x06);
+            if (ret == 0) snprintf(msgA9lh, 64, "uninstalled");
+        }
+    } while (false);
+    if (ret == 0) {
+        snprintf(msgInstall, 64, "install success!");
+        statusInstall = STATUS_GREEN;
+        return 0;
+    } else {
+        snprintf(msgInstall, 64, "install failed");
+        statusInstall = STATUS_RED;
+        if (CheckA9lh()) {
+            snprintf(msgA9lh, 64, "fucked up");
+            statusA9lh = STATUS_RED;
+        }
+    }
     
+    // if we end up here: uhoh
+    ShowPrompt(false, "SafeSigHaxInstaller failed!\nThis really should not have happened :/.");
+    ShowPrompt(false, "You can now load an external payload\nto try and fix up your system.\n \nThis may be your LAST CHANCE!\nUse it wisely.");
+    const char* optionstr[2] = { "Unmount SD card", "Launch " INPUT_PATH "/payload.bin" };
+    while (true) {
+        u32 user_select = ShowSelectPrompt(2, optionstr, "Make your choice.");
+        if (user_select == 1) {
+            fs_deinit();
+            ShowString("SD card unmounted, you can eject now.\n \n<A> to remount SD card");
+            while (true) {
+                u32 pad_choice = InputWait();
+                if (!(pad_choice & BUTTON_A)) continue;
+                if (fs_init() == FR_OK) break;
+                ShowString("Reinitialising SD card failed!\n \n<A> to retry");
+            }
+        } else if (user_select == 2) {
+            UINT payload_size;
+            if ((f_qread(INPUT_PATH "/payload.bin", WORK_BUFFER, 0, WORK_BUFFER_SIZE, &payload_size) != FR_OK) ||
+                !payload_size || (payload_size > PAYLOAD_MAX_SIZE))
+                continue;
+            if (ShowUnlockSequence(3, "payload.bin (%dkB)\nLaunch as arm9 payload?", payload_size / 1024)) {
+                Chainload(WORK_BUFFER, payload_size);
+                while(1);
+            }
+        }
+    }
     
     return 0;
 }

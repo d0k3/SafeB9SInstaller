@@ -1,7 +1,7 @@
 #include "validator.h"
 #include "sha.h"
 
-#define FIRM_MAGIC  'F', 'I', 'R', 'M', '\0', '\0', '\0', '\0'
+#define FIRM_MAGIC  'F', 'I', 'R', 'M'
 #define FIRM_MAX_SIZE  0x400000 // 4MB, due to FIRM partition size
 
 // see: https://www.3dbrew.org/wiki/FIRM#Firmware_Section_Headers
@@ -15,7 +15,8 @@ typedef struct {
 
 // see: https://www.3dbrew.org/wiki/FIRM#FIRM_Header
 typedef struct {
-    u8  magic[8];
+    u8  magic[4];
+    u8  priority[4];
     u32 entry_arm11;
     u32 entry_arm9;
     u8  reserved1[0x30];
@@ -56,6 +57,8 @@ u32 ValidateFirmHeader(FirmHeader* header, u32 data_size) {
 
 u32 ValidateFirm(void* firm, u8* firm_sha, u32 firm_size, char* output) {
     FirmHeader* header = (FirmHeader*) firm;
+    int section_arm11 = -1;
+    int section_arm9 = -1;
     
     // validate firm header
     if (ValidateFirmHeader(header, firm_size) != 0)
@@ -69,6 +72,18 @@ u32 ValidateFirm(void* firm, u8* firm_sha, u32 firm_size, char* output) {
             if (output) snprintf(output, 64, "Section %lu hash mismatch", i);
             return 1;
         }
+        if ((header->entry_arm11 >= section->address) &&
+            (header->entry_arm11 < section->address + section->size))
+            section_arm11 = i;
+        if ((header->entry_arm9 >= section->address) &&
+            (header->entry_arm9 < section->address + section->size))
+            section_arm9 = i;
+    }
+    
+    // sections for arm11 / arm9 entrypoints not found?
+    if ((section_arm11 < 0) || (section_arm9 < 0)) {
+        if (output) snprintf(output, 64, "ARM11/ARM9 entrypoints not found");
+        return 1;
     }
     
     // check provided .SHA
@@ -76,9 +91,6 @@ u32 ValidateFirm(void* firm, u8* firm_sha, u32 firm_size, char* output) {
         if (output) snprintf(output, 64, "SHA hash mismatch");
         return 1;
     }
-    
-    // ARM9 / ARM11 area check (?)
-    // more (?)
     
     return 0;
 }
@@ -88,7 +100,7 @@ u32 ValidateSector(void* sector) {
 }
 
 u32 CheckFirmSigHax(void* firm) {
-    return 0; // not like we can check that already
+    return 0; // not like we can check that already (!!!)
     FirmHeader* header = (FirmHeader*) firm;
     return (sha_cmp(sighaxHash, header->signature, 0x100, SHA256_MODE) == 0) ? 0 : 1;
 }

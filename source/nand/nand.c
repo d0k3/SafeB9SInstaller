@@ -172,12 +172,12 @@ bool CheckSector0x96Crypto(void)
 bool CheckFirmCrypto(void)
 {
     // check the FIRM magic
-    const u8 magic[8] = {'F', 'I', 'R', 'M', '\0', '\0', '\0', '\0'}; 
+    const u8 magic[8] = {'F', 'I', 'R', 'M'}; 
     const u32 sectors[] = { SECTOR_FIRM0, SECTOR_FIRM1 };
     u8 buffer[0x200];
     for (u32 i = 0; i < sizeof(sectors) / sizeof(u32); i++) {
         ReadNandSectors(buffer, sectors[i], 1, 0x06);
-        if (memcmp(buffer, magic, 8) != 0) return false;
+        if (memcmp(buffer, magic, sizeof(magic)) != 0) return false;
     }
     
     // success if we arrive here
