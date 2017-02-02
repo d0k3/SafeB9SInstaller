@@ -256,7 +256,7 @@ u32 SafeSigHaxInstaller(void) {
         if (CheckA9lh()) {
             snprintf(msgInstall, 64, "0x96 revert...");
             ShowInstallerStatus();
-            ret = SafeWriteNand(secret_sector, 0x96, 0x200, 0x06);
+            ret = SafeWriteNand(secret_sector, 0x96 * 0x200, 0x200, 0x11);
             if (ret == 0) snprintf(msgA9lh, 64, "uninstalled");
         }
     } while (false);

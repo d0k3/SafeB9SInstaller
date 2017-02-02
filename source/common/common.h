@@ -38,7 +38,7 @@
     (((v) % (a)) ? ((v) + (a) - ((v) % (a))) : (v))
 
 // SafeSigHaxInstaller version
-#define VERSION     "0.0.1"
+#define VERSION     "0.0.2"
 
 // input / output paths
 #define INPUT_PATH  "0:/sighax"
