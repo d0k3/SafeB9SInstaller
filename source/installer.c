@@ -43,13 +43,14 @@ static char msgInstall[64]     = "not started";
     
 u32 ShowInstallerStatus(void) {
     const u32 pos_xb = 10;
-    const u32 pos_x0 = pos_xb;
+    const u32 pos_x0 = pos_xb + 4;
     const u32 pos_x1 = pos_x0 + (17*FONT_WIDTH_EXT);
     const u32 pos_yb = 10;
-    const u32 pos_y0 = pos_yb + 20;
-    const u32 stp = 12;
+    const u32 pos_yu = 230;
+    const u32 pos_y0 = pos_yb + 50;
+    const u32 stp = 14;
     
-    DrawStringF(BOT_SCREEN, pos_xb, pos_yb, COLOR_STD_FONT, COLOR_STD_BG, "SafeSigHaxInstaller v" VERSION);
+    DrawStringF(BOT_SCREEN, pos_xb, pos_yb, COLOR_STD_FONT, COLOR_STD_BG, "SafeSigHaxInstaller v" VERSION "\n" "--------------------------" "\n" "https://github.com/d0k3/SafeSigHaxInstaller");
     
     DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + (0*stp), COLOR_STD_FONT, COLOR_STD_BG, "ARM9LoaderHax  -");
     DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + (1*stp), COLOR_STD_FONT, COLOR_STD_BG, "MicroSD Card   -");
@@ -67,6 +68,7 @@ u32 ShowInstallerStatus(void) {
     DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + (5*stp), COLOR_STATUS(statusBackup) , COLOR_STD_BG, "%-21.21s", msgBackup );
     DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + (6*stp), COLOR_STATUS(statusInstall), COLOR_STD_BG, "%-21.21s", msgInstall);
     
+    DrawStringF(BOT_SCREEN, pos_xb, pos_yu - 10, COLOR_STD_FONT, COLOR_STD_BG, "Usage instructions: https://3ds.guide/");
     return 0;
 }
 
@@ -78,6 +80,7 @@ u32 SafeSigHaxInstaller(void) {
     
     
     // step #0 - a9lh check
+    InitNandCrypto(); // for sector0x96 crypto and NAND drives
     snprintf(msgA9lh, 64, CheckA9lh() ? "installed" : "not installed");
     statusA9lh = STATUS_GREEN;
     ShowInstallerStatus();
@@ -95,7 +98,6 @@ u32 SafeSigHaxInstaller(void) {
         statusSdCard = STATUS_RED;
         return 1;
     }
-    InitNandCrypto(); // for sector0x96 crypto and NAND drives
     snprintf(msgSdCard, 64, "%lluMB/%lluMB free", sdFree / (1024 * 1024), sdTotal / (1024 * 1024));
     statusSdCard = (sdFree < MIN_SD_FREE) ? STATUS_RED : STATUS_GREEN;
     ShowInstallerStatus();
@@ -179,7 +181,7 @@ u32 SafeSigHaxInstaller(void) {
     
     
     // step #X - point of no return
-    if (!ShowUnlockSequence(1, "All input files verified.\nTo install FIRM, enter the sequence\nbelow or press B to cancel.")) {
+    if (!ShowUnlockSequence(1, "All input files verified.\n \nTo install FIRM, enter the sequence\nbelow or press B to cancel.")) {
         snprintf(msgBackup, 64, "cancelled by user");
         snprintf(msgInstall, 64, "cancelled by user");
         statusBackup = STATUS_YELLOW;
@@ -236,8 +238,8 @@ u32 SafeSigHaxInstaller(void) {
     ShowInstallerStatus();
     // backups done
     
+    
     // step #6 - install sighaxed FIRM
-    // ShowPrompt(false, "Install not finished - this is only a preview");
     snprintf(msgInstall, 64, "FIRM install...");
     statusInstall = STATUS_YELLOW;
     ShowInstallerStatus();
@@ -271,12 +273,13 @@ u32 SafeSigHaxInstaller(void) {
             snprintf(msgA9lh, 64, "fucked up");
             statusA9lh = STATUS_RED;
         }
+        ShowInstallerStatus();
     }
     
     // if we end up here: uhoh
     ShowPrompt(false, "SafeSigHaxInstaller failed!\nThis really should not have happened :/.");
-    ShowPrompt(false, "You can now load an external payload\nto try and fix up your system.\n \nThis may be your LAST CHANCE!\nUse it wisely.");
-    const char* optionstr[2] = { "Unmount SD card", "Launch " INPUT_PATH "/payload.bin" };
+    ShowPrompt(false, "You may launch an external payload\nto try and fix up your system.\n \nThis may be your LAST CHANCE!\nUse it wisely.");
+    const char* optionstr[2] = { "Unmount SD card", "Run " INPUT_PATH "/payload.bin" };
     while (true) {
         u32 user_select = ShowSelectPrompt(2, optionstr, "Make your choice.");
         if (user_select == 1) {
