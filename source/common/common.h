@@ -37,6 +37,9 @@
 #define align(v,a) \
     (((v) % (a)) ? ((v) + (a) - ((v) % (a))) : (v))
 
+#define ENTRY_BRAHMA        (1)
+#define ENTRY_GATEWAY       (2)
+
 // SafeSigHaxInstaller version
 #define VERSION     "0.0.3"
 
