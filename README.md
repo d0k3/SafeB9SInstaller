@@ -11,7 +11,7 @@ For usage instructions, refer to [Plailect's guide](https://3ds.guide/).
 * **Normmatt**, for sdmmc.c / sdmmc.h
 * **Cha(N)**, **Kane49**, and all other FatFS contributors for FatFS
 * **SciresM** for being the first fearless person to test this
-* **TuxSH** for FIRM research and usefule hints
+* **TuxSH** for FIRM research and useful hints
 * **hedgeberg** for dumping the bootrom (when it's done)
 * **Plailect** for providing the guide and making this accessible to the common user
 * **stuckpixel** for his tireless behind-the-scenes work

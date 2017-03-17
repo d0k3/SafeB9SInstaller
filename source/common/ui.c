@@ -71,7 +71,9 @@ void DrawCharacter(u8* screen, int character, int x, int y, int color, int bgcol
 
 void DrawString(u8* screen, const char *str, int x, int y, int color, int bgcolor)
 {
-    for (size_t i = 0; i < strlen(str); i++)
+    size_t max_len = (((screen == TOP_SCREEN) ? SCREEN_WIDTH_TOP : SCREEN_WIDTH_BOT) - x) / FONT_WIDTH;
+    size_t len = (strlen(str) > max_len) ? max_len : strlen(str);
+    for (size_t i = 0; i < len; i++)
         DrawCharacter(screen, str[i], x + i * FONT_WIDTH, y, color, bgcolor);
 }
 
@@ -94,10 +96,10 @@ u32 GetDrawStringHeight(const char* str) {
     return height;
 }
 
-u32 GetDrawStringWidth(char* str) {
+u32 GetDrawStringWidth(const char* str) {
     u32 width = 0;
-    char* old_lf = str;
-    char* str_end = str + strnlen(str, STRBUF_SIZE);
+    char* old_lf = (char*) str;
+    char* str_end = (char*) str + strnlen(str, STRBUF_SIZE);
     for (char* lf = strchr(str, '\n'); lf != NULL; lf = strchr(lf + 1, '\n')) {
         if ((u32) (lf - old_lf) > width) width = lf - old_lf;
         old_lf = lf;
@@ -236,6 +238,11 @@ bool ShowUnlockSequence(u32 seqlvl, const char *format, ...) {
         { '\x18', '\x19', '\x1B', '\x1A', 'A' }
     };
     const u32 len = 5;
+    
+    u32 color_bg = COLOR_STD_BG;
+    u32 color_font = COLOR_STD_FONT;
+    u32 color_off = COLOR_GREY;
+    u32 color_on = seqcolors[seqlvl];
     u32 lvl = 0;
     
     u32 str_width, str_height;
@@ -253,14 +260,21 @@ bool ShowUnlockSequence(u32 seqlvl, const char *format, ...) {
     x = (str_width >= SCREEN_WIDTH_TOP) ? 0 : (SCREEN_WIDTH_TOP - str_width) / 2;
     y = (str_height >= SCREEN_HEIGHT) ? 0 : (SCREEN_HEIGHT - str_height) / 2;
     
-    ClearScreenF(true, false, COLOR_STD_BG);
-    DrawStringF(TOP_SCREEN, x, y, COLOR_STD_FONT, COLOR_STD_BG, str);
-    DrawStringF(TOP_SCREEN, x, y + str_height - 28, COLOR_STD_FONT, COLOR_STD_BG, "To proceed, enter this:");
+    if (seqlvl >= 6) { // special handling
+        color_bg = seqcolors[seqlvl];
+        color_font = COLOR_BLACK;
+        color_off = COLOR_BLACK;
+        color_on = COLOR_DARKGREY;
+    }
+    
+    ClearScreenF(true, false, color_bg);
+    DrawStringF(TOP_SCREEN, x, y, color_font, color_bg, str);
+    DrawStringF(TOP_SCREEN, x, y + str_height - 28, color_font, color_bg, "To proceed, enter this:");
     
     while (true) {
         for (u32 n = 0; n < len; n++) {
             DrawStringF(TOP_SCREEN, x + (n*4*8), y + str_height - 18,
-                (lvl > n) ? seqcolors[seqlvl] : COLOR_GREY, COLOR_STD_BG, "<%c>", seqsymbols[seqlvl][n]);
+                (lvl > n) ? color_on : color_off, color_bg, "<%c>", seqsymbols[seqlvl][n]);
         }
         if (lvl == len)
             break;

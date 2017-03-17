@@ -11,9 +11,12 @@
 #include "nand.h"
 #include "sdmmc.h"
 
+#define PART_TYPE(pdrv) (DriveInfo[pdrv].type)
+#define PART_SUBTYPE(pdrv) (DriveInfo[pdrv].subtype)
+
 #define TYPE_NONE       0
 #define TYPE_SYSNAND    NAND_SYSNAND
-#define TYPE_SDCARD     (1<<4)
+#define TYPE_SDCARD     (1UL<<4)
 
 #define SUBTYPE_CTRN    0
 #define SUBTYPE_CTRN_N  1
@@ -41,28 +44,14 @@ FATpartition DriveInfo[4] = {
 };
 
 SubtypeDesc SubTypes[5] = {
-    { 0x05C980, 0x17AE80, 0x4 },        // O3DS CTRNAND
-    { 0x05C980, 0x20F680, 0x5 },        // N3DS CTRNAND
-    { 0x05C980, 0x20F680, 0x4 },        // N3DS CTRNAND (downgraded)
-    { 0x000097, 0x047DA9, 0x3 },        // TWLN
-    { 0x04808D, 0x0105B3, 0x3 }         // TWLP
+    { 0x05C980, 0x17AE80, 0x04 },       // O3DS CTRNAND
+    { 0x05C980, 0x20F680, 0x05 },       // N3DS CTRNAND
+    { 0x05C980, 0x20F680, 0x04 },       // N3DS CTRNAND (downgraded)
+    { 0x000097, 0x047DA9, 0x03 },       // TWLN
+    { 0x04808D, 0x0105B3, 0x03 }        // TWLP
 };
 
 static BYTE nand_type_sys = 0;
-
-
-
-/*-----------------------------------------------------------------------*/
-/* Get actual FAT partition type helper                                  */
-/*-----------------------------------------------------------------------*/
-
-static inline BYTE get_partition_type(
-    __attribute__((unused))
-	BYTE pdrv		/* Physical drive number to identify the drive */
-)
-{
-    return DriveInfo[pdrv].type;
-}
 
 
 
@@ -72,11 +61,10 @@ static inline BYTE get_partition_type(
 
 static inline SubtypeDesc* get_subtype_desc(
     __attribute__((unused))
-	BYTE pdrv		/* Physical drive number to identify the drive */
+    BYTE pdrv		/* Physical drive number to identify the drive */
 )
 {
-    BYTE type = get_partition_type(pdrv);
-    BYTE subtype = (type) ? DriveInfo[pdrv].subtype : SUBTYPE_NONE;
+    BYTE subtype = PART_SUBTYPE(pdrv);
     
     if (subtype == SUBTYPE_NONE) {
         return NULL;
@@ -95,8 +83,8 @@ static inline SubtypeDesc* get_subtype_desc(
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_status (
-	__attribute__((unused))
-	BYTE pdrv		/* Physical drive number to identify the drive */
+    __attribute__((unused))
+    BYTE pdrv		/* Physical drive number to identify the drive */
 )
 {
     return RES_OK;
@@ -109,8 +97,8 @@ DSTATUS disk_status (
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_initialize (
-	__attribute__((unused))
-	BYTE pdrv				/* Physical drive number to identify the drive */
+    __attribute__((unused))
+    BYTE pdrv				/* Physical drive number to identify the drive */
 )
 {
     if (pdrv == 0) { // a mounted SD card is the preriquisite for everything else
@@ -119,7 +107,7 @@ DSTATUS disk_initialize (
         nand_type_sys = CheckNandType();
         if (!nand_type_sys) return STA_NOINIT|STA_NODISK;
     }
-	return RES_OK;
+    return RES_OK;
 }
 
 
@@ -129,14 +117,14 @@ DSTATUS disk_initialize (
 /*-----------------------------------------------------------------------*/
 
 DRESULT disk_read (
-	__attribute__((unused))
-	BYTE pdrv,		/* Physical drive number to identify the drive */
-	BYTE *buff,		/* Data buffer to store read data */
-	DWORD sector,	/* Sector address in LBA */
-	UINT count		/* Number of sectors to read */
+    __attribute__((unused))
+    BYTE pdrv,		/* Physical drive number to identify the drive */
+    BYTE *buff,		/* Data buffer to store read data */
+    DWORD sector,	/* Sector address in LBA */
+    UINT count		/* Number of sectors to read */
 )
 {   
-    BYTE type = get_partition_type(pdrv);
+    BYTE type = PART_TYPE(pdrv);
     
     if (type == TYPE_NONE) {
         return RES_PARERR;
@@ -152,7 +140,7 @@ DRESULT disk_read (
             return RES_PARERR;
     }
 
-	return RES_OK;
+    return RES_OK;
 }
 
 
@@ -163,14 +151,14 @@ DRESULT disk_read (
 
 #if _USE_WRITE
 DRESULT disk_write (
-	__attribute__((unused))
-	BYTE pdrv,			/* Physical drive number to identify the drive */
-	const BYTE *buff,	/* Data to be written */
-	DWORD sector,		/* Sector address in LBA */
-	UINT count			/* Number of sectors to write */
+    __attribute__((unused))
+    BYTE pdrv,			/* Physical drive number to identify the drive */
+    const BYTE *buff,	/* Data to be written */
+    DWORD sector,		/* Sector address in LBA */
+    UINT count			/* Number of sectors to write */
 )
 {
-    BYTE type = get_partition_type(pdrv);
+    BYTE type = PART_TYPE(pdrv);
     
     if (type == TYPE_NONE) {
         return RES_PARERR;
@@ -186,7 +174,7 @@ DRESULT disk_write (
             return RES_PARERR; // unstubbed!
     }
 
-	return RES_OK;
+    return RES_OK;
 }
 #endif
 
@@ -198,15 +186,15 @@ DRESULT disk_write (
 
 #if _USE_IOCTL
 DRESULT disk_ioctl (
-	__attribute__((unused))
-	BYTE pdrv,		/* Physical drive number (0..) */
-	__attribute__((unused))
-	BYTE cmd,		/* Control code */
-	__attribute__((unused))
-	void *buff		/* Buffer to send/receive control data */
+    __attribute__((unused))
+    BYTE pdrv,		/* Physical drive number (0..) */
+    __attribute__((unused))
+    BYTE cmd,		/* Control code */
+    __attribute__((unused))
+    void *buff		/* Buffer to send/receive control data */
 )
 {
-    BYTE type = get_partition_type(pdrv);
+    BYTE type = PART_TYPE(pdrv);
     
     switch (cmd) {
         case GET_SECTOR_SIZE:
@@ -227,6 +215,6 @@ DRESULT disk_ioctl (
             return RES_OK;
     }
     
-	return RES_PARERR;
+    return RES_PARERR;
 }
 #endif

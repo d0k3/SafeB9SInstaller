@@ -6,7 +6,7 @@
 static FATFS* fs = (FATFS*) 0x20316000;
 
 // currently open file systems
-static FRESULT fs_mounted[NUM_FS] = { FR_NOT_READY };
+static FRESULT fs_mounted[NUM_FS];
 
 FRESULT f_qread (const TCHAR* path, void* buff, FSIZE_t ofs, UINT btr, UINT* br) {
     FIL fp;
@@ -50,7 +50,7 @@ FRESULT f_qwrite (const TCHAR* path, const void* buff, FSIZE_t ofs, UINT btw, UI
     return res;
 }
 
-FATFS* fs_getobj(const TCHAR* path) {
+FATFS* fs_getobj (const TCHAR* path) {
     UINT fsnum = (path[1] == ':') ? *path - '0' : -1;
     return ((fsnum < NUM_FS) && (fs_mounted[fsnum] == FR_OK)) ? &fs[fsnum] : (FATFS*) 0;
 }
@@ -80,7 +80,6 @@ FRESULT fs_init(void) {
     for (UINT i = 0; i < NUM_FS; i++) {
         TCHAR* fsname = "X:";
         *fsname = (TCHAR) ('0' + i);
-        if (fs_mounted[i] == FR_OK) continue;
         fs_mounted[i] = f_mount(fs + i, fsname, 1);
         if ((fs_mounted[i] != FR_OK) && (i == 0)) return fs_mounted[i]; // SD can't fail
     }
