@@ -83,13 +83,19 @@ _skip_gw:
 
     @ Clear bss
     ldr r0, =__bss_start
-    ldr r1, =__end__
+    ldr r1, =__bss_end
     mov r2, #0
 
     .bss_clr:
         cmp r0, r1
         strlt r2, [r0], #4
         blt .bss_clr
+
+    @ Flush caches
+    mov r5, #0
+    mcr p15, 0, r5, c7, c5, 0  @ flush I-cache
+    mcr p15, 0, r5, c7, c6, 0  @ flush D-cache
+    mcr p15, 0, r5, c7, c10, 4 @ drain write buffer
 
     @ Give read/write access to all the memory regions
     ldr r5, =0x33333333
@@ -130,12 +136,6 @@ _skip_gw:
     orr r4, r4, #(1<<2)        @ - data cache enable
     orr r4, r4, #(1<<0)        @ - mpu enable
     mcr p15, 0, r4, c1, c0, 0  @ write control register
-
-    @ Flush caches
-    mov r5, #0
-    mcr p15, 0, r5, c7, c5, 0  @ flush I-cache
-    mcr p15, 0, r5, c7, c6, 0  @ flush D-cache
-    mcr p15, 0, r5, c7, c10, 4 @ drain write buffer
 
     @ Fixes mounting of SDMC
     ldr r0, =0x10000020
