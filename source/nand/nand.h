@@ -1,9 +1,9 @@
 #pragma once
 
 #include "common.h"
-#include "platform.h"
+#include "unittype.h"
 
-#define NAND_MIN_SECTORS ((GetUnitPlatform() == PLATFORM_N3DS) ? NAND_MIN_SECTORS_N3DS : NAND_MIN_SECTORS_O3DS)
+#define NAND_MIN_SECTORS ((!IS_O3DS) ? NAND_MIN_SECTORS_N3DS : NAND_MIN_SECTORS_O3DS)
 
 #define NAND_SYSNAND    (1<<0)
 #define NAND_ZERONAND   (1<<3)

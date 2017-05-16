@@ -326,7 +326,7 @@ u32 CheckNandHeader(void* header)
     // header type check
     u8* header_enc = header;
     if (memcmp(header_enc + 0x100, nand_magic_n3ds, sizeof(nand_magic_n3ds) == 0) == 0)
-        return (GetUnitPlatform() == PLATFORM_3DS) ? 0 : NAND_TYPE_N3DS;
+        return (IS_O3DS) ? 0 : NAND_TYPE_N3DS;
     else if (memcmp(header_enc + 0x100, nand_magic_o3ds, sizeof(nand_magic_o3ds) == 0) == 0)
         return NAND_TYPE_O3DS;
     
@@ -338,12 +338,12 @@ u32 CheckNandType(void)
     if (ReadNandSectors(NAND_BUFFER, 0, 1, 0xFF) != 0)
         return 0;
     if (memcmp(NAND_BUFFER + 0x100, nand_magic_n3ds, 0x60) == 0) {
-        return (GetUnitPlatform() == PLATFORM_3DS) ? 0 : NAND_TYPE_N3DS;
+        return (IS_O3DS) ? 0 : NAND_TYPE_N3DS;
     } else if (memcmp(NAND_BUFFER + 0x100, nand_magic_o3ds, 0x60) == 0) {
         u8 magic[8] = {0xE9, 0x00, 0x00, 0x43, 0x54, 0x52, 0x20, 0x20};
         if (ReadNandSectors(NAND_BUFFER, 0x5CAE5, 1, 0x04) != 0)
             return 0;
-        return ((GetUnitPlatform() == PLATFORM_3DS) || (memcmp(magic, NAND_BUFFER, 8) == 0)) ?
+        return ((IS_O3DS) || (memcmp(magic, NAND_BUFFER, 8) == 0)) ?
             NAND_TYPE_O3DS : NAND_TYPE_NO3DS;
     }
     
