@@ -44,7 +44,7 @@
 #define VERSION     "0.0.3"
 
 // input / output paths
-#define INPUT_PATH  "0:/sighax"
+#define INPUT_PATH  "0:/boot9strap"
 
 // buffer area defines (big buffer for firm)
 #define WORK_BUFFER         ((u8*) 0x21000000)

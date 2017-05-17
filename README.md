@@ -1,4 +1,4 @@
-# SafeSigHaxInstaller
+# SafeB9SInstaller
 Safe, simple, user-friendly installer for sighaxed FIRMs
 
 **DON'T USE THIS YET**

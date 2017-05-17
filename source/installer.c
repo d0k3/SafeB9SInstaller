@@ -15,8 +15,8 @@
 #define FIRM0_NAND_OFFSET   FIRM_NAND_OFFSET
 #define FIRM1_NAND_OFFSET   (FIRM_NAND_OFFSET + (FIRM_NAND_SIZE/2))
 
-#define NAME_SIGHAXFIRM     (INPUT_PATH "/sighaxfirm.bin")
-#define NAME_SIGHAXFIRMSHA  (INPUT_PATH "/sighaxfirm.bin.sha")
+#define NAME_SIGHAXFIRM     (INPUT_PATH "/boot9strap.firm")
+#define NAME_SIGHAXFIRMSHA  (INPUT_PATH "/boot9strap.firm.sha")
 #define NAME_SECTOR0x96     (INPUT_PATH "/secret_sector.bin")
 #define NAME_FIRMBACKUP     (INPUT_PATH "/firm0firm1.bak")
 #define NAME_SECTORBACKUP   (INPUT_PATH "/sector0x96.bak")
@@ -50,7 +50,7 @@ u32 ShowInstallerStatus(void) {
     const u32 pos_y0 = pos_yb + 50;
     const u32 stp = 14;
     
-    DrawStringF(BOT_SCREEN, pos_xb, pos_yb, COLOR_STD_FONT, COLOR_STD_BG, "SafeSigHaxInstaller v" VERSION "\n" "--------------------------" "\n" "https://github.com/d0k3/SafeSigHaxInstaller");
+    DrawStringF(BOT_SCREEN, pos_xb, pos_yb, COLOR_STD_FONT, COLOR_STD_BG, "SafeB9SInstaller v" VERSION "\n" "-----------------------" "\n" "https://github.com/d0k3/SafeB9SInstaller");
     
     DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + (0*stp), COLOR_STD_FONT, COLOR_STD_BG, "ARM9LoaderHax  -");
     DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + (1*stp), COLOR_STD_FONT, COLOR_STD_BG, "MicroSD Card   -");
@@ -72,7 +72,7 @@ u32 ShowInstallerStatus(void) {
     return 0;
 }
 
-u32 SafeSigHaxInstaller(void) {
+u32 SafeB9SInstaller(void) {
     UINT bt;
     
     // initialization
@@ -277,7 +277,7 @@ u32 SafeSigHaxInstaller(void) {
     }
     
     // if we end up here: uhoh
-    ShowPrompt(false, "SafeSigHaxInstaller failed!\nThis really should not have happened :/.");
+    ShowPrompt(false, "SafeB9SInstaller failed!\nThis really should not have happened :/.");
     ShowPrompt(false, "You may launch an external payload\nto try and fix up your system.\n \nThis may be your LAST CHANCE!\nUse it wisely.");
     const char* optionstr[2] = { "Unmount SD card", "Run " INPUT_PATH "/payload.bin" };
     while (true) {

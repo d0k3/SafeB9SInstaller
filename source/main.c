@@ -13,7 +13,7 @@ void Reboot()
 
 int main()
 {
-    u32 ret = SafeSigHaxInstaller();
+    u32 ret = SafeB9SInstaller();
     ShowInstallerStatus(); // update installer status one last time
     if (ret) ShowPrompt(false, "SigHaxed FIRM was not installed!\nCheck lower screen for info.");
     else ShowPrompt(false, "SigHaxed FIRM install success!");

@@ -16,7 +16,7 @@ include $(DEVKITARM)/ds_rules
 # INCLUDES is a list of directories containing header files
 # SPECS is the directory containing the important build and link files
 #---------------------------------------------------------------------------------
-export TARGET	:=	SafeSigHaxInstaller
+export TARGET	:=	SafeB9SInstaller
 BUILD		:=	build
 SOURCES		:=	source source/common source/fs source/crypto source/fatfs source/nand source/safety
 DATA		:=	data
@@ -163,7 +163,7 @@ clean:
 	@-make clean --no-print-directory -C CakesROP
 	@echo clean BrahmaLoader...
 	@-make clean --no-print-directory -C BrahmaLoader
-	@echo clean SafeSigHaxInstaller...
+	@echo clean SafeB9SInstaller...
 	@rm -fr $(BUILD) $(OUTPUT_D) $(RELEASE)
 
 
