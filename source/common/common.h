@@ -40,8 +40,8 @@
 #define ENTRY_BRAHMA        (1)
 #define ENTRY_GATEWAY       (2)
 
-// SafeSigHaxInstaller version
-#define VERSION     "0.0.3"
+// SafeB9SInstaller version
+#define VERSION     "0.0.5"
 
 // input / output paths
 #define INPUT_PATH  "0:/boot9strap"
