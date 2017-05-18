@@ -132,6 +132,11 @@ u32 SafeB9SInstaller(void) {
         statusFirm = STATUS_RED;
         return 1;
     }
+    if (CheckBoot9Strap(FIRM_BUFFER) != 0) {
+        snprintf(msgFirm, 64, "not boot9strap");
+        statusFirm = STATUS_RED;
+        return 1;
+    }
     snprintf(msgFirm, 64, "loaded & verified");
     statusFirm = STATUS_GREEN;
     ShowInstallerStatus();

@@ -5,6 +5,9 @@
 #define FIRM_MAGIC  'F', 'I', 'R', 'M'
 #define FIRM_MAX_SIZE  0x400000 // 4MB, due to FIRM partition size
 
+#define B9S_MAGIC   "B9S"
+#define B9S_OFFSET  (0x40 - strnlen(B9S_MAGIC, 0x10))
+
 // see: https://www.3dbrew.org/wiki/FIRM#Firmware_Section_Headers
 typedef struct {
     u32 offset;
@@ -109,4 +112,8 @@ u32 ValidateSector(void* sector) {
 u32 CheckFirmSigHax(void* firm) {
     FirmHeader* header = (FirmHeader*) firm;
     return (sha_cmp(sighaxHash, header->signature, 0x100, SHA256_MODE) == 0) ? 0 : 1;
+}
+
+u32 CheckBoot9Strap(void* firm) {
+    return (memcmp(((u8*) firm) + B9S_OFFSET, B9S_MAGIC, strnlen(B9S_MAGIC, 0x10)) == 0) ? 0 : 1;
 }
