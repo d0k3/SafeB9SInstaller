@@ -15,11 +15,11 @@
 #define FIRM0_NAND_OFFSET   FIRM_NAND_OFFSET
 #define FIRM1_NAND_OFFSET   (FIRM_NAND_OFFSET + (FIRM_NAND_SIZE/2))
 
-#define NAME_SIGHAXFIRM     (INPUT_PATH "/boot9strap.firm")
-#define NAME_SIGHAXFIRMSHA  (INPUT_PATH "/boot9strap.firm.sha")
-#define NAME_SECTOR0x96     (INPUT_PATH "/secret_sector.bin")
-#define NAME_FIRMBACKUP     (INPUT_PATH "/firm0firm1.bak")
-#define NAME_SECTORBACKUP   (INPUT_PATH "/sector0x96.bak")
+#define NAME_SIGHAXFIRM     (IS_DEVKIT ? INPUT_PATH "/boot9strap_dev.firm" : INPUT_PATH "/boot9strap.firm")
+#define NAME_SIGHAXFIRMSHA  (IS_DEVKIT ? INPUT_PATH "/boot9strap_dev.firm.sha" : INPUT_PATH "/boot9strap.firm.sha")
+#define NAME_SECTOR0x96     (IS_DEVKIT ? INPUT_PATH "/secret_sector_dev.bin" : INPUT_PATH "/secret_sector.bin")
+#define NAME_FIRMBACKUP     INPUT_PATH "/firm0firm1.bak"
+#define NAME_SECTORBACKUP   INPUT_PATH "/sector0x96.bak"
 
 #define STATUS_GREY    -1
 #define STATUS_GREEN    0
