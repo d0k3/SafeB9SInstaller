@@ -81,7 +81,7 @@ u32 SafeSigHaxInstaller(void) {
     
     // step #0 - a9lh check
     InitNandCrypto(); // for sector0x96 crypto and NAND drives
-    snprintf(msgA9lh, 64, CheckA9lh() ? "installed" : "not installed");
+    snprintf(msgA9lh, 64, (IS_A9LH && !IS_SIGHAX) ? "installed" : "not installed");
     statusA9lh = STATUS_GREEN;
     ShowInstallerStatus();
     
@@ -140,7 +140,7 @@ u32 SafeSigHaxInstaller(void) {
     
     // step #3 - check secret_sector.bin file
     u8 secret_sector[0x200];
-    if (CheckA9lh()) {
+    if ((IS_A9LH && !IS_SIGHAX)) {
         snprintf(msgSector, 64, "checking...");
         statusSector = STATUS_YELLOW;
         ShowInstallerStatus();
@@ -170,7 +170,7 @@ u32 SafeSigHaxInstaller(void) {
         statusCrypto = STATUS_RED;
         return 1;
     }
-    if (CheckA9lh() && !CheckSector0x96Crypto()) {
+    if ((IS_A9LH && !IS_SIGHAX) && !CheckSector0x96Crypto()) {
         snprintf(msgCrypto, 64, "OTP crypto fail");
         statusCrypto = STATUS_RED;
         return 1;
@@ -218,7 +218,7 @@ u32 SafeSigHaxInstaller(void) {
         statusBackup = STATUS_RED;
         return 1;
     }
-    if (CheckA9lh()) {
+    if ((IS_A9LH && !IS_SIGHAX)) {
         snprintf(msgBackup, 64, "0x96 backup...");
         ShowInstallerStatus();
         u8 sector_backup0[0x200];
@@ -255,7 +255,7 @@ u32 SafeSigHaxInstaller(void) {
         ShowProgress(1, 2, "FIRM install (2/2)");
         snprintf(msgInstall, 64, "FIRM install (2/2)");
         ShowInstallerStatus();
-        if (CheckA9lh()) {
+        if ((IS_A9LH && !IS_SIGHAX)) {
             snprintf(msgInstall, 64, "0x96 revert...");
             ShowInstallerStatus();
             ret = SafeWriteNand(secret_sector, 0x96 * 0x200, 0x200, 0x11);
@@ -269,7 +269,7 @@ u32 SafeSigHaxInstaller(void) {
     } else {
         snprintf(msgInstall, 64, "install failed");
         statusInstall = STATUS_RED;
-        if (CheckA9lh()) {
+        if ((IS_A9LH && !IS_SIGHAX)) {
             snprintf(msgA9lh, 64, "fucked up");
             statusA9lh = STATUS_RED;
         }

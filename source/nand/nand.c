@@ -14,6 +14,11 @@ static const u8 slot0x11Key95_sha256[0x20] = { // slot0x11Key95 hash (first 16 b
     0xBA, 0xC1, 0x40, 0x9C, 0x6E, 0xE4, 0x1F, 0x04, 0xAA, 0xC4, 0xE2, 0x09, 0x5C, 0xE9, 0x4F, 0x78, 
     0x6C, 0x78, 0x5F, 0xAC, 0xEC, 0x7E, 0xC0, 0x11, 0x26, 0x9D, 0x4E, 0x47, 0xB3, 0x64, 0xC4, 0xA5
 };
+
+static const u8 slot0x11Key95dev_sha256[0x20] = { // slot0x11Key95 hash (first 16 byte of sector0x96)
+    0x97, 0x0E, 0x52, 0x29, 0x63, 0x19, 0x47, 0x51, 0x15, 0xD8, 0x02, 0x7A, 0x22, 0x0F, 0x58, 0x15,
+    0xD7, 0x6C, 0xE9, 0xAD, 0xE7, 0xFE, 0x9A, 0x25, 0x4E, 0x4A, 0x0C, 0x82, 0x67, 0xB5, 0x4A, 0x7B
+};
     
 static const u8 nand_magic_n3ds[0x60] = { // NCSD NAND header N3DS magic
     0x4E, 0x43, 0x53, 0x44, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -55,7 +60,7 @@ u32 LoadKeyYFromP9(u8* key, const u8* keyhash, u32 offset, u32 keyslot)
     u8 header[0x200];
     
     // check arm9loaderhax
-    if (!CheckA9lh() || (offset < (offsetA9l + 0x0800))) return 1;
+    if (!IS_A9LH || (offset < (offsetA9l + 0x0800))) return 1;
     
     // section 2 (arm9loader) header of FIRM
     // this is @0x066A00 in FIRM90 & FIRM81
@@ -86,7 +91,7 @@ bool InitNandCrypto(void)
 {   
     // part #0: KeyX / KeyY for secret sector 0x96
     // on a9lh this MUST be run before accessing the SHA register in any other way
-    if (CheckA9lh()) { // for a9lh
+    if (IS_A9LH) { // for a9lh
         // store the current SHA256 from register
         memcpy(OtpSha256, (void*) REG_SHAHASH, 32);
     }
@@ -105,7 +110,7 @@ bool InitNandCrypto(void)
     
     // part #2: TWL KEY
     // see: https://www.3dbrew.org/wiki/Memory_layout#ARM9_ITCM
-    if (CheckA9lh()) { // only for a9lh
+    if (IS_A9LH) { // only for a9lh
         u32* TwlCustId = (u32*) (0x01FFB808);
         u8 TwlKeyX[16] __attribute__((aligned(32)));
         u8 TwlKeyY[16] __attribute__((aligned(32)));
@@ -132,7 +137,7 @@ bool InitNandCrypto(void)
     // part #3: CTRNAND N3DS KEY
     // thanks AuroraWright and Gelex for advice on this
     // see: https://github.com/AuroraWright/Luma3DS/blob/master/source/crypto.c#L347
-    if (CheckA9lh()) { // only for a9lh
+    if (IS_A9LH) { // only for a9lh
         // keyY 0x05 is encrypted @0x0EB014 in the FIRM90
         // keyY 0x05 is encrypted @0x0EB24C in the FIRM81
         if ((LoadKeyYFromP9(slot0x05KeyY, slot0x05KeyY_sha256, 0x0EB014, 0x05) != 0) &&
@@ -166,7 +171,7 @@ bool CheckSector0x96Crypto(void)
 {
     u8 buffer[0x200];
     ReadNandSectors(buffer, 0x96, 1, 0x11);
-    return (sha_cmp(slot0x11Key95_sha256, buffer, 16, SHA256_MODE) == 0);
+    return (sha_cmp((IS_DEVKIT) ? slot0x11Key95dev_sha256 : slot0x11Key95_sha256, buffer, 16, SHA256_MODE) == 0);
 }
 
 bool CheckFirmCrypto(void)
@@ -182,11 +187,6 @@ bool CheckFirmCrypto(void)
     
     // success if we arrive here
     return true;
-}
-
-bool CheckA9lh(void)
-{
-    return ((*(vu32*) 0x101401C0) == 0);
 }
 
 void CryptNand(void* buffer, u32 sector, u32 count, u32 keyslot)

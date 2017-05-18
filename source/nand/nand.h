@@ -39,7 +39,6 @@ bool InitNandCrypto(void);
 bool CheckSlot0x05Crypto(void);
 bool CheckSector0x96Crypto(void);
 bool CheckFirmCrypto(void);
-bool CheckA9lh(void);
 
 void CryptNand(void* buffer, u32 sector, u32 count, u32 keyslot);
 void CryptSector0x96(void* buffer, bool encrypt);
