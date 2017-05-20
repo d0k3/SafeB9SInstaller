@@ -151,6 +151,7 @@ brahma: submodules binary
 release:
 	@rm -fr $(BUILD) $(OUTPUT_D) $(RELEASE)
 	@make --no-print-directory binary
+	@-make --no-print-directory gateway
 	@-make --no-print-directory firm
 	@-make --no-print-directory 2xrsa
 	@-make --no-print-directory cakerop
@@ -165,6 +166,7 @@ release:
 	@-cp $(OUTPUT).nds $(RELEASE)
 	@-cp $(OUTPUT).3dsx $(RELEASE)/$(TARGET)
 	@-cp $(OUTPUT).smdh $(RELEASE)/$(TARGET)
+	@-cp $(OUTPUT_D)/Launcher.dat $(RELEASE)
 	@cp $(CURDIR)/README.md $(RELEASE)
 	@-7z a $(RELEASE)/$(TARGET)-`date +'%Y%m%d-%H%M%S'`.zip $(RELEASE)/*
 
