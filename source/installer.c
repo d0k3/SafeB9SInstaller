@@ -144,8 +144,8 @@ u32 SafeB9SInstaller(void) {
     
     
     // step #3 - check secret_sector.bin file
-    u8 secret_sector[0x200];
-    if ((IS_A9LH && !IS_SIGHAX)) {
+    u8 secret_sector[0x200] = { 0 };
+    if ((IS_A9LH && !IS_SIGHAX && !IS_O3DS)) {
         snprintf(msgSector, 64, "checking...");
         statusSector = STATUS_YELLOW;
         ShowInstallerStatus();
@@ -175,7 +175,7 @@ u32 SafeB9SInstaller(void) {
         statusCrypto = STATUS_RED;
         return 1;
     }
-    if ((IS_A9LH && !IS_SIGHAX) && !CheckSector0x96Crypto()) {
+    if ((IS_A9LH && !IS_SIGHAX && !IS_O3DS) && !CheckSector0x96Crypto()) {
         snprintf(msgCrypto, 64, "OTP crypto fail");
         statusCrypto = STATUS_RED;
         return 1;
@@ -263,7 +263,7 @@ u32 SafeB9SInstaller(void) {
         if ((IS_A9LH && !IS_SIGHAX)) {
             snprintf(msgInstall, 64, "0x96 revert...");
             ShowInstallerStatus();
-            ret = SafeWriteNand(secret_sector, 0x96 * 0x200, 0x200, 0x11);
+            ret = SafeWriteNand(secret_sector, 0x96 * 0x200, 0x200, IS_O3DS ? 0xFF : 0x11);
             if (ret == 0) snprintf(msgA9lh, 64, "uninstalled");
         }
     } while (false);
