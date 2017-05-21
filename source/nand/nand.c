@@ -1,4 +1,5 @@
 #include "nand.h"
+#include "keydb.h"
 #include "aes.h"
 #include "sha.h"
 #include "sdmmc.h"
@@ -94,8 +95,21 @@ bool InitNandCrypto(void)
     if (IS_A9LH) { // for a9lh
         // store the current SHA256 from register
         memcpy(OtpSha256, (void*) REG_SHAHASH, 32);
+        if (!CheckSector0x96Crypto()) { // 3dssafe users be damned (no offense meant to mashers)
+            u8 __attribute__((aligned(32))) otp0x90[0x90];
+            u8 __attribute__((aligned(32))) otp_key[0x10];
+            u8 __attribute__((aligned(32))) otp_iv[0x10];
+            memcpy(otp0x90, (u8*) 0x01FFB800, 0x90);
+            if ((LoadKeyFromFile(otp_key, 0x11, 'N', "OTP") == 0) &&
+                (LoadKeyFromFile(otp_iv, 0x11, 'I', "IVOTP") == 0)) {
+                setup_aeskey(0x11, otp_key);
+                use_aeskey(0x11);
+                cbc_encrypt(otp0x90, otp0x90, 0x90 / 0x10, AES_CNT_TITLEKEY_ENCRYPT_MODE, otp_iv);
+                sha_quick(OtpSha256, otp0x90, 0x90, SHA256_MODE);
+            }
+        }
     }
-        
+    
     // part #1: Get NAND CID, set up TWL/CTR counter
     u32 NandCid[4];
     u8 shasum[32];
