@@ -43,6 +43,10 @@
 // SafeB9SInstaller version
 #define VERSION     "0.0.5"
 
+// testfing flags, only useful to devs
+// #define NO_WRITE     // disables all NAND writes, just for testing
+// #define FAIL_TEST    // to test the emergency screen, only works with NO_TRANSFER defined
+
 // input / output paths
 #define INPUT_PATH  "0:/boot9strap"
 

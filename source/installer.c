@@ -248,6 +248,7 @@ u32 SafeB9SInstaller(void) {
     snprintf(msgInstall, 64, "FIRM install...");
     statusInstall = STATUS_YELLOW;
     ShowInstallerStatus();
+    #ifndef NO_WRITE
     ShowProgress(0, 0, "FIRM install");
     do {
         ret = SafeWriteNand(FIRM_BUFFER, FIRM0_NAND_OFFSET, firm_size, 0x06);
@@ -280,6 +281,16 @@ u32 SafeB9SInstaller(void) {
         }
         ShowInstallerStatus();
     }
+    #elif !defined FAIL_TEST
+    snprintf(msgInstall, 64, "test mode, not done");
+    statusInstall = STATUS_YELLOW;
+    return 0;
+    #else
+    snprintf(msgInstall, 64, "fail test mode...");
+    statusInstall = STATUS_YELLOW;
+    ShowInstallerStatus();
+    #endif
+    
     
     // if we end up here: uhoh
     ShowPrompt(false, "SafeB9SInstaller failed!\nThis really should not have happened :/.");
