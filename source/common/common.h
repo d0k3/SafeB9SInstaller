@@ -41,7 +41,7 @@
 #define ENTRY_GATEWAY       (2)
 
 // SafeB9SInstaller version
-#define VERSION     "0.0.5"
+#define VERSION     "0.0.6"
 
 // testfing flags, only useful to devs
 // #define NO_WRITE     // disables all NAND writes, just for testing

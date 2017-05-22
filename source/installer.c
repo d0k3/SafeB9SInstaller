@@ -1,7 +1,6 @@
 #include "installer.h"
-#include "validator.h"
 #include "safewrite.h"
-#include "chainload.h"
+#include "validator.h"
 #include "nand.h"
 #include "ui.h"
 #include "qff.h"
@@ -20,6 +19,7 @@
 #define NAME_SECTOR0x96     (IS_DEVKIT ? INPUT_PATH "/secret_sector_dev.bin" : INPUT_PATH "/secret_sector.bin")
 #define NAME_FIRMBACKUP     INPUT_PATH "/firm0firm1.bak"
 #define NAME_SECTORBACKUP   INPUT_PATH "/sector0x96.bak"
+#define NAME_PAYLOAD        INPUT_PATH "/payload.firm"
 
 #define STATUS_GREY    -1
 #define STATUS_GREEN    0
@@ -294,30 +294,52 @@ u32 SafeB9SInstaller(void) {
     
     // if we end up here: uhoh
     ShowPrompt(false, "SafeB9SInstaller failed!\nThis really should not have happened :/.");
-    ShowPrompt(false, "You may launch an external payload\nto try and fix up your system.\n \nThis may be your LAST CHANCE!\nUse it wisely.");
-    const char* optionstr[2] = { "Unmount SD card", "Run " INPUT_PATH "/payload.bin" };
-    while (true) {
-        u32 user_select = ShowSelectPrompt(2, optionstr, "Make your choice.");
-        if (user_select == 1) {
-            fs_deinit();
-            ShowString("SD card unmounted, you can eject now.\n \n<A> to remount SD card");
-            while (true) {
-                u32 pad_choice = InputWait();
-                if (!(pad_choice & BUTTON_A)) continue;
-                if (fs_init() == FR_OK) break;
-                ShowString("Reinitialising SD card failed!\n \n<A> to retry");
-            }
-        } else if (user_select == 2) {
-            UINT payload_size;
-            if ((f_qread(INPUT_PATH "/payload.bin", WORK_BUFFER, 0, WORK_BUFFER_SIZE, &payload_size) != FR_OK) ||
-                !payload_size || (payload_size > PAYLOAD_MAX_SIZE))
-                continue;
-            if (ShowUnlockSequence(3, "payload.bin (%dkB)\nLaunch as arm9 payload?", payload_size / 1024)) {
-                Chainload(WORK_BUFFER, payload_size);
-                while(1);
-            }
-        }
-    }
+    ShowPrompt(false, "Your system is now reverted to\nit's earlier state.\n \nDO NOT TURN OFF YOUR 3DS NOW!");
     
-    return 0;
+    // try to revert to the earlier state
+    snprintf(msgBackup, 64, "FIRM restore...");
+    statusBackup = STATUS_YELLOW;
+    ShowInstallerStatus();
+    if (f_open(&fp, NAME_FIRMBACKUP, FA_READ|FA_OPEN_EXISTING) != FR_OK) {
+        snprintf(msgBackup, 64, "FIRM restore fail");
+        statusBackup = STATUS_RED;
+        return 1;
+    }
+    ShowProgress(0, 0, "FIRM restore");
+    for (u32 pos = 0; (pos < FIRM_NAND_SIZE) && (ret == 0); pos += WORK_BUFFER_SIZE) {
+        UINT bytes = min(WORK_BUFFER_SIZE, FIRM_NAND_SIZE - pos);
+        snprintf(msgBackup, 64, "FIRM restore (%luMB/%luMB)",
+            pos / (1024*1024), (u32) FIRM_NAND_SIZE / (1024 * 1024));
+        ShowInstallerStatus();
+        if ((f_read(&fp, WORK_BUFFER, bytes, &bt) != FR_OK) || (bt != bytes) ||
+            (WriteNandBytes(WORK_BUFFER, FIRM_NAND_OFFSET + pos, bytes, 0xFF) != 0))
+            ret = 1;
+        ShowProgress(pos + bytes, FIRM_NAND_SIZE, "FIRM restore");
+    }
+    f_close(&fp);
+    if (ret != 0) {
+        snprintf(msgBackup, 64, "FIRM restore fail");
+        statusBackup = STATUS_RED;
+        return 1;
+    }
+    if ((IS_A9LH && !IS_SIGHAX)) {
+        snprintf(msgBackup, 64, "0x96 restore...");
+        ShowInstallerStatus();
+        u8 sector_backup[0x200];
+        if ((f_qread(NAME_SECTORBACKUP, sector_backup, 0, 0x200, &bt) != FR_OK) || (bt != 0x200) ||
+            (WriteNandSectors(sector_backup, 0x96, 1, 0xFF) != 0)) {
+            snprintf(msgBackup, 64, "0x96 restore fail");
+            statusBackup = STATUS_RED;
+            return 1;
+        }
+        snprintf(msgA9lh, 64, "restored a9lh");
+        statusA9lh = STATUS_YELLOW;
+    }
+    snprintf(msgBackup, 64, "backup restored");
+    statusBackup = STATUS_YELLOW;
+    snprintf(msgInstall, 64, "reverted system");
+    statusInstall = STATUS_YELLOW;
+    
+    
+    return 1;
 }
