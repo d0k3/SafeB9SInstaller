@@ -52,6 +52,12 @@ const u8 sighaxHash_dev[0x20] = {
     0x96, 0xD3, 0x78, 0x6E, 0xDF, 0x50, 0x3D, 0x11, 0x86, 0x84, 0x01, 0x59, 0x97, 0x50, 0x42, 0x26
 };
 
+// see: http://www.sighax.com/
+const u8 sighaxHash_alt[0x20] = {
+    0xAD, 0xB7, 0x3A, 0xBC, 0x35, 0x70, 0x8E, 0xF1, 0xDF, 0xE9, 0xEF, 0x9C, 0xA5, 0xFA, 0xC8, 0xBF,
+    0xC2, 0xDF, 0x91, 0x6B, 0xB2, 0xE3, 0x81, 0x01, 0x85, 0x84, 0x82, 0x40, 0x9F, 0x0D, 0x45, 0x0A
+};
+
 u32 ValidateFirmHeader(FirmHeader* header, u32 data_size) {
     u8 magic[] = { FIRM_MAGIC };
     if (memcmp(header->magic, magic, sizeof(magic)) != 0)
@@ -117,7 +123,8 @@ u32 ValidateSector(void* sector) {
 
 u32 CheckFirmSigHax(void* firm) {
     FirmHeader* header = (FirmHeader*) firm;
-    return (sha_cmp((IS_DEVKIT) ? sighaxHash_dev : sighaxHash, header->signature, 0x100, SHA256_MODE) == 0) ? 0 : 1;
+    return ((sha_cmp((IS_DEVKIT) ? sighaxHash_dev : sighaxHash, header->signature, 0x100, SHA256_MODE) == 0) ||
+        (!IS_DEVKIT && (sha_cmp(sighaxHash_alt, header->signature, 0x100, SHA256_MODE) == 0))) ? 0 : 1;
 }
 
 u32 CheckBoot9Strap(void* firm) {
