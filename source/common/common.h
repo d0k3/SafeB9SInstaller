@@ -47,8 +47,11 @@
 // #define NO_WRITE     // disables all NAND writes, just for testing
 // #define FAIL_TEST    // to test the emergency screen, only works with NO_TRANSFER defined
 
+// name of the FIRM to install (also name of the input path)
+#define NAME_FIRM   "boot9strap"
+
 // input / output paths
-#define INPUT_PATH  "0:/boot9strap"
+#define INPUT_PATH  "0:/" NAME_FIRM
 
 // buffer area defines (big buffer for firm)
 #define WORK_BUFFER         ((u8*) 0x21000000)

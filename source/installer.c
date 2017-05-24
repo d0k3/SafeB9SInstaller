@@ -14,12 +14,11 @@
 #define FIRM0_NAND_OFFSET   FIRM_NAND_OFFSET
 #define FIRM1_NAND_OFFSET   (FIRM_NAND_OFFSET + (FIRM_NAND_SIZE/2))
 
-#define NAME_SIGHAXFIRM     (IS_DEVKIT ? INPUT_PATH "/boot9strap_dev.firm" : INPUT_PATH "/boot9strap.firm")
-#define NAME_SIGHAXFIRMSHA  (IS_DEVKIT ? INPUT_PATH "/boot9strap_dev.firm.sha" : INPUT_PATH "/boot9strap.firm.sha")
+#define NAME_SIGHAXFIRM     (IS_DEVKIT ? INPUT_PATH "/" NAME_FIRM "_dev.firm" : INPUT_PATH "/" NAME_FIRM ".firm")
+#define NAME_SIGHAXFIRMSHA  (IS_DEVKIT ? INPUT_PATH "/" NAME_FIRM "_dev.firm.sha" : INPUT_PATH "/" NAME_FIRM ".firm.sha")
 #define NAME_SECTOR0x96     (IS_DEVKIT ? INPUT_PATH "/secret_sector_dev.bin" : INPUT_PATH "/secret_sector.bin")
 #define NAME_FIRMBACKUP     INPUT_PATH "/firm0firm1.bak"
 #define NAME_SECTORBACKUP   INPUT_PATH "/sector0x96.bak"
-#define NAME_PAYLOAD        INPUT_PATH "/payload.firm"
 
 #define STATUS_GREY    -1
 #define STATUS_GREEN    0
@@ -145,7 +144,7 @@ u32 SafeB9SInstaller(void) {
     
     // step #3 - check secret_sector.bin file
     u8 secret_sector[0x200] = { 0 };
-    if ((IS_A9LH && !IS_SIGHAX && !IS_O3DS)) {
+    if (IS_A9LH && !IS_SIGHAX && !IS_O3DS) {
         snprintf(msgSector, 64, "checking...");
         statusSector = STATUS_YELLOW;
         ShowInstallerStatus();
