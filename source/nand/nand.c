@@ -196,11 +196,11 @@ bool CheckFirmCrypto(void)
     u8 buffer[0x200];
     for (u32 i = 0; i < sizeof(sectors) / sizeof(u32); i++) {
         ReadNandSectors(buffer, sectors[i], 1, 0x06);
-        if (memcmp(buffer, magic, sizeof(magic)) != 0) return false;
+        if (memcmp(buffer, magic, sizeof(magic)) == 0) return true;
     }
     
-    // success if we arrive here
-    return true;
+    // failed if we arrive here
+    return false;
 }
 
 void CryptNand(void* buffer, u32 sector, u32 count, u32 keyslot)
