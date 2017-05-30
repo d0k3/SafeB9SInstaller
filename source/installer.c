@@ -67,7 +67,11 @@ u32 ShowInstallerStatus(void) {
     DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + (5*stp), COLOR_STATUS(statusBackup) , COLOR_STD_BG, "%-21.21s", msgBackup );
     DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + (6*stp), COLOR_STATUS(statusInstall), COLOR_STD_BG, "%-21.21s", msgInstall);
     
-    DrawStringF(BOT_SCREEN, pos_xb, pos_yu - 10, COLOR_STD_FONT, COLOR_STD_BG, "Usage instructions: https://3ds.guide/");
+    if(IS_DEVKIT) {
+        DrawStringF(BOT_SCREEN, pos_xb, pos_yu - 10, COLOR_STD_FONT, COLOR_STD_BG, "Usage instructions: https://dev.3ds.guide/");
+    } else {
+        DrawStringF(BOT_SCREEN, pos_xb, pos_yu - 10, COLOR_STD_FONT, COLOR_STD_BG, "Usage instructions: https://3ds.guide/");
+    }
     return 0;
 }
 
