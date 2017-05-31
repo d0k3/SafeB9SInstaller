@@ -28,7 +28,7 @@ INCLUDES	:=	source source/common source/font source/fs source/crypto source/fatf
 ARCH	:=	-mthumb -mthumb-interwork -flto
 
 CFLAGS	:=	-g -Wall -Wextra -Wpedantic -Wcast-align -Wno-main -O2\
-			-march=armv5te -mtune=arm946e-s -fomit-frame-pointer -ffast-math -std=gnu99\
+			-march=armv5te -mtune=arm946e-s -fomit-frame-pointer -ffast-math -std=gnu11\
 			$(ARCH)
 
 CFLAGS	+=	$(INCLUDE) -DARM9
@@ -120,7 +120,7 @@ binary: common
 	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 firm: binary
-	@firmtool/firmtool build $(OUTPUT).firm -n 0x23F00000 -e 0 -D $(OUTPUT).bin -A 0x23F00000 -C NDMA -i
+	@firmtool build $(OUTPUT).firm -n 0x23F00000 -e 0 -D $(OUTPUT).bin -A 0x23F00000 -C NDMA -i
 
 gateway: binary
 	@cp resources/LauncherTemplate.dat $(OUTPUT_D)/Launcher.dat
