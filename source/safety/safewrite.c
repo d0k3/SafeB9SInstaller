@@ -18,6 +18,18 @@ u32 SafeWriteFile(FIL* file, void* buff, FSIZE_t ofs, UINT btw) {
     return (sha_cmp(sha_in, buff, btw, SHA256_MODE) == 0) ? 0 : 1;
 }
 
+// safe file quick writer function
+// same as SafeWriteFile(), but also handles filec reate, too, same warnings apply
+u32 SafeQWriteFile(const TCHAR* path, void* buff, UINT btw) {
+    FIL fp;
+    u32 ret = 0;
+    if (f_open(&fp, path, FA_READ|FA_WRITE|FA_CREATE_ALWAYS) != FR_OK)
+        return 1;
+    ret = SafeWriteFile(&fp, buff, 0, btw);
+    f_close(&fp);
+    return ret;
+}
+
 // safe NAND writer function, warnings:
 // (1) contents of buffer may change on corruption
 // (2) uses SHA register

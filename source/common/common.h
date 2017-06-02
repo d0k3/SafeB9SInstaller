@@ -55,11 +55,11 @@
 
 // buffer area defines (big buffer for firm)
 #define WORK_BUFFER         ((u8*) 0x21000000)
-#define WORK_BUFFER_SIZE    (0x100000)
-#define NAND_BUFFER         ((u8*) 0x22000000)
-#define NAND_BUFFER_SIZE    (0x100000)
-#define FIRM_BUFFER         ((u8*) 0x23000000)
+#define WORK_BUFFER_SIZE    (0x400000)
+#define FIRM_BUFFER         ((u8*) 0x21400000)
 #define FIRM_BUFFER_SIZE    (0x400000)
+#define NAND_BUFFER         ((u8*) 0x21800000)
+#define NAND_BUFFER_SIZE    (0x100000)
 
 inline u32 strchrcount(const char* str, char symbol) {
     u32 count = 0;

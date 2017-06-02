@@ -1,6 +1,7 @@
 #include "installer.h"
 #include "safewrite.h"
 #include "validator.h"
+#include "unittype.h"
 #include "nand.h"
 #include "ui.h"
 #include "qff.h"
@@ -9,16 +10,12 @@
 #define COLOR_STATUS(s) ((s == STATUS_GREEN) ? COLOR_BRIGHTGREEN : (s == STATUS_YELLOW) ? COLOR_BRIGHTYELLOW : (s == STATUS_RED) ? COLOR_RED : COLOR_DARKGREY)
 
 #define MIN_SD_FREE (16 * 1024 * 1024) // 16MB
-#define FIRM_NAND_OFFSET    0x0B130000
-#define FIRM_NAND_SIZE      0x800000
-#define FIRM0_NAND_OFFSET   FIRM_NAND_OFFSET
-#define FIRM1_NAND_OFFSET   (FIRM_NAND_OFFSET + (FIRM_NAND_SIZE/2))
 
 #define NAME_SIGHAXFIRM     (IS_DEVKIT ? INPUT_PATH "/" NAME_FIRM "_dev.firm" : INPUT_PATH "/" NAME_FIRM ".firm")
 #define NAME_SIGHAXFIRMSHA  (IS_DEVKIT ? INPUT_PATH "/" NAME_FIRM "_dev.firm.sha" : INPUT_PATH "/" NAME_FIRM ".firm.sha")
 #define NAME_SECTOR0x96     (IS_DEVKIT ? INPUT_PATH "/secret_sector_dev.bin" : INPUT_PATH "/secret_sector.bin")
-#define NAME_FIRMBACKUP     INPUT_PATH "/firm0firm1.bak"
-#define NAME_SECTORBACKUP   INPUT_PATH "/sector0x96.bak"
+#define NAME_FIRMBACKUP     INPUT_PATH "/firm%lu_enc.bak"
+#define NAME_SECTORBACKUP   INPUT_PATH "/sector0x96_enc.bak"
 
 #define STATUS_GREY    -1
 #define STATUS_GREEN    0
@@ -73,6 +70,7 @@ u32 ShowInstallerStatus(void) {
 
 u32 SafeB9SInstaller(void) {
     UINT bt;
+    u32 ret = 0;
     
     // initialization
     ShowString("Initializing, please wait...");
@@ -169,6 +167,20 @@ u32 SafeB9SInstaller(void) {
     snprintf(msgCrypto, 64, "checking...");
     statusCrypto = STATUS_YELLOW;
     ShowInstallerStatus();
+    u32 n_firms = 0;
+    for (; n_firms < 8; n_firms++) {
+        NandPartitionInfo np_info;
+        if (GetNandPartitionInfo(&np_info, NP_TYPE_FIRM, NP_SUBTYPE_CTR, n_firms) != 0) break;
+        if ((firm_size > np_info.count * 0x200) || (np_info.count * 0x200 > WORK_BUFFER_SIZE)) {
+            n_firms = 0;
+            break;
+        }
+    }
+    if (!n_firms) {
+        snprintf(msgCrypto, 64, "FIRM partition fail");
+        statusCrypto = STATUS_RED;
+        return 1;
+    }
     if (!CheckFirmCrypto()) {
         snprintf(msgCrypto, 64, "FIRM crypto fail");
         statusCrypto = STATUS_RED;
@@ -198,25 +210,24 @@ u32 SafeB9SInstaller(void) {
     snprintf(msgBackup, 64, "FIRM backup...");
     statusBackup = STATUS_YELLOW;
     ShowInstallerStatus();
-    FIL fp;
-    u32 ret = 0;
-    if (f_open(&fp, NAME_FIRMBACKUP, FA_READ|FA_WRITE|FA_CREATE_ALWAYS) != FR_OK) {
-        snprintf(msgBackup, 64, "FIRM backup fail");
-        statusBackup = STATUS_RED;
-        return 1;
-    }
     ShowProgress(0, 0, "FIRM backup");
-    for (u32 pos = 0; (pos < FIRM_NAND_SIZE) && (ret == 0); pos += WORK_BUFFER_SIZE) {
-        UINT bytes = min(WORK_BUFFER_SIZE, FIRM_NAND_SIZE - pos);
-        snprintf(msgBackup, 64, "FIRM backup (%luMB/%luMB)",
-            pos / (1024*1024), (u32) FIRM_NAND_SIZE / (1024 * 1024));
+    for (u32 i = 0; i < n_firms; i++) {
+        NandPartitionInfo np_info;
+        ret = GetNandPartitionInfo(&np_info, NP_TYPE_FIRM, NP_SUBTYPE_CTR, i);
+        if (ret != 0) break;
+        u32 fsize = np_info.count * 0x200;
+        u32 foffset = np_info.sector * 0x200;
+        char bakname[64];
+        snprintf(bakname, 64, NAME_FIRMBACKUP, i);
+        snprintf(msgBackup, 64, "FIRM backup (%lu/%lu)", i, n_firms);
         ShowInstallerStatus();
-        if ((ReadNandBytes(WORK_BUFFER, FIRM_NAND_OFFSET + pos, bytes, 0xFF) != 0) ||
-            (SafeWriteFile(&fp, WORK_BUFFER, pos, bytes) != 0))
+        if ((ReadNandBytes(WORK_BUFFER, foffset, fsize, 0xFF) != 0) ||
+            (SafeQWriteFile(bakname, WORK_BUFFER, fsize) != 0)) {
             ret = 1;
-        ShowProgress(pos + bytes, FIRM_NAND_SIZE, "FIRM backup");
+            break;
+        }
+        ShowProgress(i + 1, n_firms, "FIRM backup");
     }
-    f_close(&fp);
     if (ret != 0) {
         snprintf(msgBackup, 64, "FIRM backup fail");
         statusBackup = STATUS_RED;
@@ -250,20 +261,21 @@ u32 SafeB9SInstaller(void) {
     #ifndef NO_WRITE
     ShowProgress(0, 0, "FIRM install");
     do {
-        ret = SafeWriteNand(FIRM_BUFFER, FIRM0_NAND_OFFSET, firm_size, 0x06);
+        for (u32 i = 0; i < n_firms; i++) {
+            NandPartitionInfo np_info;
+            ret = GetNandPartitionInfo(&np_info, NP_TYPE_FIRM, NP_SUBTYPE_CTR, i);
+            if (ret != 0) break;
+            ret = SafeWriteNand(FIRM_BUFFER, np_info.sector * 0x200, firm_size, np_info.keyslot);
+            if (ret != 0) break;
+            ShowProgress(i+1, n_firms, "FIRM install");
+            snprintf(msgInstall, 64, "FIRM install (%li/8)", i+1);
+            ShowInstallerStatus();
+        }
         if (ret != 0) break;
-        ShowProgress(1, 2, "FIRM install (1/2)");
-        snprintf(msgInstall, 64, "FIRM install (1/2)");
-        ShowInstallerStatus();
-        ret = SafeWriteNand(FIRM_BUFFER, FIRM1_NAND_OFFSET, firm_size, 0x06);
-        if (ret != 0) break;
-        ShowProgress(1, 2, "FIRM install (2/2)");
-        snprintf(msgInstall, 64, "FIRM install (2/2)");
-        ShowInstallerStatus();
         if ((IS_A9LH && !IS_SIGHAX)) {
             snprintf(msgInstall, 64, "0x96 revert...");
             ShowInstallerStatus();
-            ret = SafeWriteNand(secret_sector, 0x96 * 0x200, 0x200, IS_O3DS ? 0xFF : 0x11);
+            ret = SafeWriteNand(secret_sector, SECTOR_SECRET * 0x200, 0x200, IS_O3DS ? 0xFF : 0x11);
             if (ret == 0) snprintf(msgA9lh, 64, "uninstalled");
         }
     } while (false);
@@ -281,11 +293,11 @@ u32 SafeB9SInstaller(void) {
         ShowInstallerStatus();
     }
     #elif !defined FAIL_TEST
-    snprintf(msgInstall, 64, "test mode, not done");
+    snprintf(msgInstall, 64, "no write mode");
     statusInstall = STATUS_YELLOW;
     return 0;
     #else
-    snprintf(msgInstall, 64, "fail test mode...");
+    snprintf(msgInstall, 64, "emergency mode");
     statusInstall = STATUS_YELLOW;
     ShowInstallerStatus();
     #endif
@@ -299,23 +311,24 @@ u32 SafeB9SInstaller(void) {
     snprintf(msgBackup, 64, "FIRM restore...");
     statusBackup = STATUS_YELLOW;
     ShowInstallerStatus();
-    if (f_open(&fp, NAME_FIRMBACKUP, FA_READ|FA_OPEN_EXISTING) != FR_OK) {
-        snprintf(msgBackup, 64, "FIRM restore fail");
-        statusBackup = STATUS_RED;
-        return 1;
-    }
     ShowProgress(0, 0, "FIRM restore");
-    for (u32 pos = 0; (pos < FIRM_NAND_SIZE) && (ret == 0); pos += WORK_BUFFER_SIZE) {
-        UINT bytes = min(WORK_BUFFER_SIZE, FIRM_NAND_SIZE - pos);
-        snprintf(msgBackup, 64, "FIRM restore (%luMB/%luMB)",
-            pos / (1024*1024), (u32) FIRM_NAND_SIZE / (1024 * 1024));
+    for (u32 i = 0; i < n_firms; i++) {
+        NandPartitionInfo np_info;
+        ret = GetNandPartitionInfo(&np_info, NP_TYPE_FIRM, NP_SUBTYPE_CTR, i);
+        if (ret != 0) break;
+        u32 fsize = np_info.count * 0x200;
+        u32 foffset = np_info.sector * 0x200;
+        char bakname[64];
+        snprintf(bakname, 64, NAME_FIRMBACKUP, i);
+        snprintf(msgBackup, 64, "FIRM restore (%lu/%lu)", i, n_firms);
         ShowInstallerStatus();
-        if ((f_read(&fp, WORK_BUFFER, bytes, &bt) != FR_OK) || (bt != bytes) ||
-            (WriteNandBytes(WORK_BUFFER, FIRM_NAND_OFFSET + pos, bytes, 0xFF) != 0))
+        if ((f_qread(bakname, WORK_BUFFER, 0, fsize, &bt) != FR_OK) || (bt != fsize) ||
+            (WriteNandBytes(WORK_BUFFER, foffset, fsize, 0xFF) != 0)) {
             ret = 1;
-        ShowProgress(pos + bytes, FIRM_NAND_SIZE, "FIRM restore");
+            break;
+        }
+        ShowProgress(i + 1, n_firms, "FIRM restore");
     }
-    f_close(&fp);
     if (ret != 0) {
         snprintf(msgBackup, 64, "FIRM restore fail");
         statusBackup = STATUS_RED;
@@ -326,7 +339,7 @@ u32 SafeB9SInstaller(void) {
         ShowInstallerStatus();
         u8 sector_backup[0x200];
         if ((f_qread(NAME_SECTORBACKUP, sector_backup, 0, 0x200, &bt) != FR_OK) || (bt != 0x200) ||
-            (WriteNandSectors(sector_backup, 0x96, 1, 0xFF) != 0)) {
+            (WriteNandSectors(sector_backup, SECTOR_SECRET, 1, 0xFF) != 0)) {
             snprintf(msgBackup, 64, "0x96 restore fail");
             statusBackup = STATUS_RED;
             return 1;

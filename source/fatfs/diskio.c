@@ -11,70 +11,33 @@
 #include "nand.h"
 #include "sdmmc.h"
 
+
+#define PART_INFO(pdrv) (DriveInfo + pdrv)
 #define PART_TYPE(pdrv) (DriveInfo[pdrv].type)
-#define PART_SUBTYPE(pdrv) (DriveInfo[pdrv].subtype)
 
 #define TYPE_NONE       0
-#define TYPE_SYSNAND    NAND_SYSNAND
+#define TYPE_SYSNAND    (1UL<<0)
 #define TYPE_SDCARD     (1UL<<4)
 
-#define SUBTYPE_CTRN    0
-#define SUBTYPE_CTRN_N  1
-#define SUBTYPE_CTRN_NO 2
-#define SUBTYPE_TWLN    3
-#define SUBTYPE_TWLP    4
-#define SUBTYPE_NONE    5
+#define SUBTYPE_CTRN    1
+#define SUBTYPE_TWLN    2
+#define SUBTYPE_TWLP    3
+#define SUBTYPE_NONE    0
 
 typedef struct {
     BYTE  type;
     BYTE  subtype;
-} FATpartition;
-
-typedef struct {
     DWORD offset;
     DWORD size;
     BYTE  keyslot;
-} SubtypeDesc;
+} FATpartition;
 
-FATpartition DriveInfo[4] = {
-    { TYPE_SDCARD,  SUBTYPE_NONE },     // 0 - SDCARD
-    { TYPE_SYSNAND, SUBTYPE_CTRN },     // 1 - SYSNAND CTRNAND
-    { TYPE_SYSNAND, SUBTYPE_TWLN },     // 2 - SYSNAND TWLN
-    { TYPE_SYSNAND, SUBTYPE_TWLP },     // 3 - SYSNAND TWLP
+FATpartition DriveInfo[13] = {
+    { TYPE_SDCARD,  SUBTYPE_NONE, 0, 0, 0xFF },     // 0 - SDCARD
+    { TYPE_SYSNAND, SUBTYPE_CTRN, 0, 0, 0xFF },     // 1 - SYSNAND CTRNAND
+    { TYPE_SYSNAND, SUBTYPE_TWLN, 0, 0, 0xFF },     // 2 - SYSNAND TWLN
+    { TYPE_SYSNAND, SUBTYPE_TWLP, 0, 0, 0xFF },     // 3 - SYSNAND TWLP
 };
-
-SubtypeDesc SubTypes[5] = {
-    { 0x05C980, 0x17AE80, 0x04 },       // O3DS CTRNAND
-    { 0x05C980, 0x20F680, 0x05 },       // N3DS CTRNAND
-    { 0x05C980, 0x20F680, 0x04 },       // N3DS CTRNAND (downgraded)
-    { 0x000097, 0x047DA9, 0x03 },       // TWLN
-    { 0x04808D, 0x0105B3, 0x03 }        // TWLP
-};
-
-static BYTE nand_type_sys = 0;
-
-
-
-/*-----------------------------------------------------------------------*/
-/* Get Drive Subtype helper                                              */
-/*-----------------------------------------------------------------------*/
-
-static inline SubtypeDesc* get_subtype_desc(
-    __attribute__((unused))
-    BYTE pdrv		/* Physical drive number to identify the drive */
-)
-{
-    BYTE subtype = PART_SUBTYPE(pdrv);
-    
-    if (subtype == SUBTYPE_NONE) {
-        return NULL;
-    } else if (subtype == SUBTYPE_CTRN) {
-        if (nand_type_sys != NAND_TYPE_O3DS)
-            subtype = (nand_type_sys == NAND_TYPE_N3DS) ? SUBTYPE_CTRN_N : SUBTYPE_CTRN_NO;
-    }
-    
-    return &(SubTypes[subtype]);
-}
 
 
 
@@ -83,8 +46,8 @@ static inline SubtypeDesc* get_subtype_desc(
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_status (
-    __attribute__((unused))
-    BYTE pdrv		/* Physical drive number to identify the drive */
+	__attribute__((unused))
+	BYTE pdrv		/* Physical drive number to identify the drive */
 )
 {
     return RES_OK;
@@ -97,17 +60,38 @@ DSTATUS disk_status (
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_initialize (
-    __attribute__((unused))
-    BYTE pdrv				/* Physical drive number to identify the drive */
+	__attribute__((unused))
+	BYTE pdrv				/* Physical drive number to identify the drive */
 )
 {
-    if (pdrv == 0) { // a mounted SD card is the preriquisite for everything else
+    FATpartition* fat_info = PART_INFO(pdrv);
+    BYTE type = PART_TYPE(pdrv);
+    
+    fat_info->offset = fat_info->size = 0;
+    fat_info->keyslot = 0xFF;
+    
+    if (type == TYPE_SDCARD) {
         if (sdmmc_sdcard_init() != 0) return STA_NOINIT|STA_NODISK;
-    } else if (pdrv < 4) {
-        nand_type_sys = CheckNandType();
-        if (!nand_type_sys) return STA_NOINIT|STA_NODISK;
+        fat_info->size = getMMCDevice(1)->total_size;
+    } else if (type == TYPE_SYSNAND) {
+        NandPartitionInfo nprt_info;
+        if ((fat_info->subtype == SUBTYPE_CTRN) &&
+            (GetNandPartitionInfo(&nprt_info, NP_TYPE_STD, NP_SUBTYPE_CTR, 0) != 0) &&
+            (GetNandPartitionInfo(&nprt_info, NP_TYPE_STD, NP_SUBTYPE_CTR_N, 0) != 0)) {
+            return STA_NOINIT|STA_NODISK;
+        } else if ((fat_info->subtype == SUBTYPE_TWLN) &&
+            (GetNandPartitionInfo(&nprt_info, NP_TYPE_FAT, NP_SUBTYPE_TWL, 0) != 0)) {
+            return STA_NOINIT|STA_NODISK;
+        } else if ((fat_info->subtype == SUBTYPE_TWLP) &&
+            (GetNandPartitionInfo(&nprt_info, NP_TYPE_FAT, NP_SUBTYPE_TWL, 1) != 0)) {
+            return STA_NOINIT|STA_NODISK;
+        }
+        fat_info->offset = nprt_info.sector;
+        fat_info->size = nprt_info.count;
+        fat_info->keyslot = nprt_info.keyslot;
     }
-    return RES_OK;
+    
+	return RES_OK;
 }
 
 
@@ -117,11 +101,11 @@ DSTATUS disk_initialize (
 /*-----------------------------------------------------------------------*/
 
 DRESULT disk_read (
-    __attribute__((unused))
-    BYTE pdrv,		/* Physical drive number to identify the drive */
-    BYTE *buff,		/* Data buffer to store read data */
-    DWORD sector,	/* Sector address in LBA */
-    UINT count		/* Number of sectors to read */
+	__attribute__((unused))
+	BYTE pdrv,		/* Physical drive number to identify the drive */
+	BYTE *buff,		/* Data buffer to store read data */
+	DWORD sector,	/* Sector address in LBA */
+	UINT count		/* Number of sectors to read */
 )
 {   
     BYTE type = PART_TYPE(pdrv);
@@ -132,15 +116,12 @@ DRESULT disk_read (
         if (sdmmc_sdcard_readsectors(sector, count, buff))
             return RES_PARERR;
     } else {
-        SubtypeDesc* subtype = get_subtype_desc(pdrv);
-        BYTE keyslot = subtype->keyslot;
-        DWORD isector = subtype->offset + sector;
-        
-        if (ReadNandSectors(buff, isector, count, keyslot))
+        FATpartition* fat_info = PART_INFO(pdrv);
+        if (ReadNandSectors(buff, fat_info->offset + sector, count, fat_info->keyslot))
             return RES_PARERR;
     }
 
-    return RES_OK;
+	return RES_OK;
 }
 
 
@@ -151,11 +132,11 @@ DRESULT disk_read (
 
 #if _USE_WRITE
 DRESULT disk_write (
-    __attribute__((unused))
-    BYTE pdrv,			/* Physical drive number to identify the drive */
-    const BYTE *buff,	/* Data to be written */
-    DWORD sector,		/* Sector address in LBA */
-    UINT count			/* Number of sectors to write */
+	__attribute__((unused))
+	BYTE pdrv,			/* Physical drive number to identify the drive */
+	const BYTE *buff,	/* Data to be written */
+	DWORD sector,		/* Sector address in LBA */
+	UINT count			/* Number of sectors to write */
 )
 {
     BYTE type = PART_TYPE(pdrv);
@@ -166,15 +147,12 @@ DRESULT disk_write (
         if (sdmmc_sdcard_writesectors(sector, count, (BYTE *)buff))
             return RES_PARERR;
     } else {
-        SubtypeDesc* subtype = get_subtype_desc(pdrv);
-        BYTE keyslot = subtype->keyslot;
-        DWORD isector = subtype->offset + sector;
-        
-        if (WriteNandSectors(buff, isector, count, keyslot))
+        FATpartition* fat_info = PART_INFO(pdrv);
+        if (WriteNandSectors(buff, fat_info->offset + sector, count, fat_info->keyslot))
             return RES_PARERR; // unstubbed!
     }
 
-    return RES_OK;
+	return RES_OK;
 }
 #endif
 
@@ -186,26 +164,20 @@ DRESULT disk_write (
 
 #if _USE_IOCTL
 DRESULT disk_ioctl (
-    __attribute__((unused))
-    BYTE pdrv,		/* Physical drive number (0..) */
-    __attribute__((unused))
-    BYTE cmd,		/* Control code */
-    __attribute__((unused))
-    void *buff		/* Buffer to send/receive control data */
+	__attribute__((unused))
+	BYTE pdrv,		/* Physical drive number (0..) */
+	__attribute__((unused))
+	BYTE cmd,		/* Control code */
+	__attribute__((unused))
+	void *buff		/* Buffer to send/receive control data */
 )
 {
-    BYTE type = PART_TYPE(pdrv);
-    
     switch (cmd) {
         case GET_SECTOR_SIZE:
             *((DWORD*) buff) = 0x200;
             return RES_OK;
         case GET_SECTOR_COUNT:
-            if (type == TYPE_SDCARD) { // SD card
-                *((DWORD*) buff) = getMMCDevice(1)->total_size;
-            } else if (type != TYPE_NONE) { // NAND
-                *((DWORD*) buff) = get_subtype_desc(pdrv)->size;
-            }
+            *((DWORD*) buff) = PART_INFO(pdrv)->size;
             return RES_OK;
         case GET_BLOCK_SIZE:
             *((DWORD*) buff) = 0x2000;
@@ -215,6 +187,6 @@ DRESULT disk_ioctl (
             return RES_OK;
     }
     
-    return RES_PARERR;
+	return RES_PARERR;
 }
 #endif
