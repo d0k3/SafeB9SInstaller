@@ -47,6 +47,10 @@ else
 CFLAGS	+=	-DFONT_6X10
 endif
 
+ifeq ($(OPEN),1)
+	CFLAGS += -DOPEN_INSTALLER
+endif
+
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 
 ASFLAGS	:=	-g $(ARCH)

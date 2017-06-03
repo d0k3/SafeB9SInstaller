@@ -46,7 +46,9 @@ u32 ShowInstallerStatus(void) {
     const u32 pos_y0 = pos_yb + 50;
     const u32 stp = 14;
     
-    DrawStringF(BOT_SCREEN, pos_xb, pos_yb, COLOR_STD_FONT, COLOR_STD_BG, "SafeB9SInstaller v" VERSION "\n" "-----------------------" "\n" "https://github.com/d0k3/SafeB9SInstaller");
+    // DrawStringF(BOT_SCREEN, pos_xb, pos_yb, COLOR_STD_FONT, COLOR_STD_BG, "SafeB9SInstaller v" VERSION "\n" "-----------------------" "\n" "https://github.com/d0k3/SafeB9SInstaller");
+    DrawStringF(BOT_SCREEN, pos_xb, pos_yb, COLOR_STD_FONT, COLOR_STD_BG, APP_TITLE "\n" "%.*s" "\n" APP_URL,
+        strnlen(APP_TITLE, 32), "--------------------------------");
     
     DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + (0*stp), COLOR_STD_FONT, COLOR_STD_BG, "ARM9LoaderHax  -");
     DrawStringF(BOT_SCREEN, pos_x0, pos_y0 + (1*stp), COLOR_STD_FONT, COLOR_STD_BG, "MicroSD Card   -");
@@ -64,7 +66,7 @@ u32 ShowInstallerStatus(void) {
     DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + (5*stp), COLOR_STATUS(statusBackup) , COLOR_STD_BG, "%-21.21s", msgBackup );
     DrawStringF(BOT_SCREEN, pos_x1, pos_y0 + (6*stp), COLOR_STATUS(statusInstall), COLOR_STD_BG, "%-21.21s", msgInstall);
     
-    DrawStringF(BOT_SCREEN, pos_xb, pos_yu - 10, COLOR_STD_FONT, COLOR_STD_BG, "Usage instructions: https://%s3ds.guide/", IS_DEVKIT ? "dev." : "");
+    DrawStringF(BOT_SCREEN, pos_xb, pos_yu - 10, COLOR_STD_FONT, COLOR_STD_BG, APP_USAGE);
     return 0;
 }
 
@@ -129,12 +131,11 @@ u32 SafeB9SInstaller(void) {
         statusFirm = STATUS_RED;
         return 1;
     }
-    if (CheckBoot9Strap(FIRM_BUFFER) != 0) {
-        snprintf(msgFirm, 64, "not boot9strap");
+    if (CheckFirmPayload(FIRM_BUFFER, msgFirm) != 0) {
         statusFirm = STATUS_RED;
         return 1;
     }
-    snprintf(msgFirm, 64, "loaded & verified");
+    // snprintf(msgFirm, 64, "loaded & verified");
     statusFirm = STATUS_GREEN;
     ShowInstallerStatus();
     // provided FIRM is okay!

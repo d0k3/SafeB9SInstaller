@@ -8,6 +8,9 @@
 #define B9S_MAGIC   "B9S"
 #define B9S_OFFSET  (0x40 - strnlen(B9S_MAGIC, 0x10))
 
+#define FB3_MAGIC   "FASTBOOT 3DS   "
+#define FB3_OFFSET  0x200 // this is not actually used
+
 // see: https://www.3dbrew.org/wiki/FIRM#Firmware_Section_Headers
 typedef struct {
     u32 offset;
@@ -129,4 +132,29 @@ u32 CheckFirmSigHax(void* firm) {
 
 u32 CheckBoot9Strap(void* firm) {
     return (memcmp(((u8*) firm) + B9S_OFFSET, B9S_MAGIC, strnlen(B9S_MAGIC, 0x10)) == 0) ? 0 : 1;
+}
+
+u32 CheckFastBoot3DS(void* firm) {
+    FirmHeader* header = (FirmHeader*) firm;
+    u32 offset = 0;
+    for (u32 i = 0; (i < 4) && !offset; i++) { // find ARM9 section
+        FirmSectionHeader* section = header->sections + i;
+        if (section->size && (section->type == 0))
+            offset = section->offset;
+    }
+    return (offset && (memcmp(((u8*) firm) + offset, FB3_MAGIC, strnlen(FB3_MAGIC, 0x10)) == 0)) ? 0 : 1;
+}
+
+u32 CheckFirmPayload(void* firm, char* result) {
+    if (CheckBoot9Strap(firm) == 0) {
+        if (result) snprintf(result, 32, "boot9strap firm");
+        return 0;
+    #ifdef OPEN_INSTALLER 
+    } else if (CheckFastBoot3DS(firm) == 0) {
+        if (result) snprintf(result, 32, "fastboot3ds firm");
+        return 0;
+    #endif
+    }
+    if (result) snprintf(result, 32, "unknown firm");
+    return 1;
 }
