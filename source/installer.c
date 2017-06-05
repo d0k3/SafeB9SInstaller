@@ -110,6 +110,7 @@ u32 SafeB9SInstaller(void) {
     ShowInstallerStatus();
     u8 firm_sha[0x20];
     UINT firm_size;
+    bool unknown_payload = false;
     if ((f_qread(NAME_SIGHAXFIRM, FIRM_BUFFER, 0, FIRM_BUFFER_SIZE, &firm_size) != FR_OK) ||
         (firm_size < 0x200)) {
         snprintf(msgFirm, 64, "file not found");
@@ -132,11 +133,14 @@ u32 SafeB9SInstaller(void) {
         return 1;
     }
     if (CheckFirmPayload(FIRM_BUFFER, msgFirm) != 0) {
+        #ifndef OPEN_INSTALLER
         statusFirm = STATUS_RED;
         return 1;
+        #else
+        unknown_payload = true;
+        #endif
     }
-    // snprintf(msgFirm, 64, "loaded & verified");
-    statusFirm = STATUS_GREEN;
+    statusFirm = unknown_payload ? STATUS_YELLOW : STATUS_GREEN;
     ShowInstallerStatus();
     // provided FIRM is okay!
     
@@ -164,7 +168,7 @@ u32 SafeB9SInstaller(void) {
     // secret_sector.bin okay or not required!
     
     
-    // step #3 - check NAND crypto
+    // step #4 - check NAND crypto
     snprintf(msgCrypto, 64, "checking...");
     statusCrypto = STATUS_YELLOW;
     ShowInstallerStatus();
@@ -198,7 +202,9 @@ u32 SafeB9SInstaller(void) {
     
     
     // step #X - point of no return
-    if (!ShowUnlockSequence(1, "All input files verified.\n \nTo install FIRM, enter the sequence\nbelow or press B to cancel.")) {
+    if (!ShowUnlockSequence(unknown_payload ? 6 : 1, unknown_payload ? 
+        "!!! FIRM NOT RECOGNIZED !!!\nProceeding may lead to a BRICK!\n \nTo proceed, enter the sequence\nbelow or press B to cancel." :
+        "All input files verified.\n \nTo install FIRM, enter the sequence\nbelow or press B to cancel.")) {
         snprintf(msgBackup, 64, "cancelled by user");
         snprintf(msgInstall, 64, "cancelled by user");
         statusBackup = STATUS_YELLOW;
