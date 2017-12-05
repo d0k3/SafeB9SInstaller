@@ -311,7 +311,7 @@ u32 SafeB9SInstaller(void) {
     
     
     // if we end up here: uhoh
-    ShowPrompt(false, "SafeB9SInstaller failed!\nThis really should not have happened :/.");
+    ShowPrompt(false, APP_TITLE " failed!\nThis really should not have happened :/.");
     ShowPrompt(false, "Your system is now reverted to\nit's earlier state.\n \nDO NOT TURN OFF YOUR 3DS NOW!");
     
     // try to revert to the earlier state
