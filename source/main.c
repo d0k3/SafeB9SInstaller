@@ -29,9 +29,9 @@ void main(int argc, char** argv)
     ClearScreenF(true, true, COLOR_STD_BG);
     u32 ret = SafeB9SInstaller();
     ShowInstallerStatus(); // update installer status one last time
+    fs_deinit();
     if (ret) ShowPrompt(false, "SigHaxed FIRM was not installed!\nCheck lower screen for info.");
     else ShowPrompt(false, "SigHaxed FIRM install success!");
     ClearScreenF(true, true, COLOR_STD_BG);
-    fs_deinit();
     Reboot();
 }
