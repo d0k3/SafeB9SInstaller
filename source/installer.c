@@ -3,6 +3,7 @@
 #include "validator.h"
 #include "unittype.h"
 #include "nand.h"
+#include "sdmmc.h"
 #include "ui.h"
 #include "qff.h"
 #include "hid.h"
@@ -16,6 +17,8 @@
 #define NAME_SECTOR0x96     (IS_DEVKIT ? INPUT_PATH "/secret_sector_dev.bin" : INPUT_PATH "/secret_sector.bin")
 #define NAME_FIRMBACKUP     INPUT_PATH "/firm%lu_enc.bak"
 #define NAME_SECTORBACKUP   INPUT_PATH "/sector0x96_enc.bak"
+
+#define MAX_STAGE2_SIZE   0x89A00
 
 #define STATUS_GREY    -1
 #define STATUS_GREEN    0
@@ -278,6 +281,11 @@ u32 SafeB9SInstaller(void) {
             snprintf(msgInstall, 64, "FIRM install (%li/8)", i+1);
             ShowInstallerStatus();
         }
+        if (ret != 0) break;
+        uint8_t emptyStage2[MAX_STAGE2_SIZE]={0};
+        // Uninstall a9lh stage 2 always if firm flashed ok
+        // This prevents false positives in the event of cfw uninstall
+        ret = sdmmc_nand_writesectors(0x5C000, MAX_STAGE2_SIZE / 0x200, emptyStage2);
         if (ret != 0) break;
         if ((IS_A9LH && !IS_SIGHAX)) {
             snprintf(msgInstall, 64, "0x96 revert...");
