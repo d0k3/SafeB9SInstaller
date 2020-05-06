@@ -25,11 +25,11 @@ INCLUDES	:=	source source/common source/font source/fs source/crypto source/fatf
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-ARCH	:=	-mthumb -mthumb-interwork -flto
+ARCH	:=	-mthumb -mthumb-interwork 
 
 CFLAGS	:=	-g -Wall -Wextra -Wpedantic -Wcast-align -Wno-main -O2\
 			-march=armv5te -mtune=arm946e-s -fomit-frame-pointer -ffast-math -std=gnu11\
-			$(ARCH)
+			-fno-builtin-memcpy $(ARCH) -fdata-sections -ffunction-sections
 
 CFLAGS	+=	$(INCLUDE) -DARM9
 
@@ -53,7 +53,7 @@ endif
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 
-ASFLAGS	:=	-g $(ARCH)
+ASFLAGS	:=	-g -mcpu=arm946e-s $(ARCH)
 LDFLAGS	=	-T../link.ld -nostartfiles -g $(ARCH) -Wl,-Map,$(TARGET).map
 
 LIBS	:=
