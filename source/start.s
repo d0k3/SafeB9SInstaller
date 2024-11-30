@@ -98,6 +98,25 @@ _skip_gw:
     bic r4, #(1<<0)            @ - mpu disable
     mcr p15, 0, r4, c1, c0, 0  @ write control register
 
+    @ Disable FIQs and IRQs
+    msr cpsr_cxsf, #0xD3 @ PSR_SVC_MODE | PSR_I | PSR_F
+
+    @ Disable and acknowledge interrupts
+    mov r2, #0x10000000
+    add r2, r2, #0x1000
+    mov r0, #0
+    mvn r1, #0        @ 0xFFFFFFFF
+    strd r0, r1, [r2] @ REG_IE/IF
+
+    @ Clear NDMA registers
+    add r2, r2, #0x1000 @ NDMA_GLOBAL_CNT, 0x10002000 = 0x10001000 + 0x1000
+    add r1, r2, #0xFC
+    add r2, r2, #0x1C
+    dma_clear_loop:
+        str r0, [r2], #0x1C
+        cmp r1, r2
+        bne dma_clear_loop
+
     @ Clear bss
     ldr r0, =__bss_start
     ldr r1, =__bss_end
