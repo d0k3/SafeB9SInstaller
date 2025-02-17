@@ -54,7 +54,7 @@
 #ifndef OPEN_INSTALLER
 #define APP_TITLE   "SafeB9SInstaller" " v" VERSION
 #define APP_URL     "https://github.com/d0k3/SafeB9SInstaller"
-#define APP_USAGE   "Usage instructions: https://%s3ds.guide/", IS_DEVKIT ? "dev." : ""
+#define APP_USAGE   "Usage instructions: https://%s.hacks.guide/", IS_DEVKIT ? "panda" : "3ds"
 #else
 #define APP_TITLE   "OpenFirmInstaller" " v" VERSION
 #define APP_URL     "https://github.com/d0k3/SafeB9SInstaller"
