@@ -33,7 +33,7 @@ CFLAGS	:=	-g -Wall -Wextra -Wpedantic -Wcast-align -Wno-main -O2\
 
 CFLAGS	+=	$(INCLUDE) -DARM9
 
-CFLAGS	+=	-DBUILD_NAME="\"$(TARGET) (`date +'%Y/%m/%d'`)\""
+CFLAGS	+=	-DBUILD_NAME="\"$(TARGET) `date +'%Y/%m/%d'`\""
 
 ifeq ($(FONT),ORIG)
 CFLAGS	+=	-DFONT_ORIGINAL
